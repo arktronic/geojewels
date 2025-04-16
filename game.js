@@ -17,11 +17,15 @@ const FAST_FALL_MULTIPLIER = 10; // How much faster when pressing down
 let gameState = {
     board: [], // 2D array representing the game board
     currentColumn: null, // Current active column
+    nextJewels: null, // Pre-generated jewels for the next column
     score: 0,
-    status: 'start', // 'start', 'playing', 'paused', 'gameOver'
+    status: 'start', // 'start', 'playing', 'paused', 'gameOver', 'animating'
     lastFallTime: 0, // Time of last fall
     fallInterval: FALL_SPEED,
-    fastFall: false
+    fastFall: false,
+    animatingMatches: false, // Flag to indicate match animation in progress
+    matchAnimations: [], // Store animation objects
+    columnLock: false // Lock to prevent multiple column spawns
 };
 
 // Create Pixi Application
@@ -90,6 +94,7 @@ const boardContainer = new PIXI.Container();
 const gridContainer = new PIXI.Container();
 const jewelContainer = new PIXI.Container();
 const activeColumnContainer = new PIXI.Container();
+const animationContainer = new PIXI.Container(); // Container for match animations
 
 // Initialize the game
 function init() {
@@ -101,12 +106,16 @@ function init() {
     boardContainer.addChild(gridContainer);
     boardContainer.addChild(jewelContainer);
     boardContainer.addChild(activeColumnContainer);
+    boardContainer.addChild(animationContainer); // Add animation container to the board
     
     // Initialize the game board
     initializeBoard();
     
     // Draw the grid
     drawGrid();
+    
+    // Pre-generate the first set of jewels
+    gameState.nextJewels = generateNextJewels();
     
     // Setup input handlers including the begin button
     setupInputHandlers();
@@ -416,8 +425,27 @@ function drawFlower(graphics, centerX, centerY, petals, radius, innerRadius) {
     }
 }
 
+// Generate a set of random jewels for the next column
+function generateNextJewels() {
+    const jewels = [];
+    for (let i = 0; i < COLUMN_SIZE; i++) {
+        jewels.push(Math.floor(Math.random() * JEWEL_TYPES));
+    }
+    return jewels;
+}
+
 // Create a new falling column with random jewel types
 function spawnNewColumn() {
+    // If already animating or column is locked, don't try to spawn again
+    if (gameState.animatingMatches || gameState.columnLock) {
+        return;
+    }
+    
+    // Don't spawn if we already have an active column
+    if (gameState.currentColumn) {
+        return;
+    }
+    
     // Check if the spawn area is already occupied (game over condition)
     for (let i = 0; i < COLUMN_SIZE; i++) {
         if (gameState.board[i][Math.floor(GRID_WIDTH / 2)] !== null) {
@@ -426,6 +454,9 @@ function spawnNewColumn() {
         }
     }
     
+    // Lock the column spawn
+    gameState.columnLock = true;
+    
     // Create the new column
     const column = {
         x: Math.floor(GRID_WIDTH / 2),
@@ -433,10 +464,18 @@ function spawnNewColumn() {
         jewels: []
     };
     
-    // Generate random jewel types for the column
-    for (let i = 0; i < COLUMN_SIZE; i++) {
-        column.jewels.push(Math.floor(Math.random() * JEWEL_TYPES));
+    // Use pre-generated jewels if available, or generate new ones
+    if (gameState.nextJewels) {
+        column.jewels = [...gameState.nextJewels]; // Use a copy of the pre-generated jewels
+    } else {
+        // Generate random jewel types for the column (first time only)
+        for (let i = 0; i < COLUMN_SIZE; i++) {
+            column.jewels.push(Math.floor(Math.random() * JEWEL_TYPES));
+        }
     }
+    
+    // Generate jewels for the next column
+    gameState.nextJewels = generateNextJewels();
     
     gameState.currentColumn = column;
     gameState.lastFallTime = Date.now();
@@ -444,6 +483,9 @@ function spawnNewColumn() {
     
     // Update the visual representation
     renderActiveColumn();
+    
+    // Unlock the column spawn
+    gameState.columnLock = false;
 }
 
 // Render the current active column
@@ -475,6 +517,12 @@ function renderBoard() {
                 const jewel = createJewel(jewelType);
                 jewel.x = x * CELL_SIZE;
                 jewel.y = y * CELL_SIZE;
+                
+                // Store the jewel's grid position for reference
+                jewel.gridX = x;
+                jewel.gridY = y;
+                jewel.jewelType = jewelType;
+                
                 jewelContainer.addChild(jewel);
             }
         }
@@ -518,6 +566,12 @@ function rotateColumn() {
 
 // Make the column fall faster when down key is pressed
 function setFastFall(fast) {
+    // Don't allow fast fall during animation
+    if (gameState.animatingMatches || gameState.status !== 'playing') {
+        gameState.fastFall = false;
+        return;
+    }
+    
     gameState.fastFall = fast;
 }
 
@@ -575,50 +629,50 @@ function placeColumn() {
     
     playSound('place');
     
-    // Check for matches
-    processMatches();
+    // Clear the active column container immediately
+    activeColumnContainer.removeChildren();
+    gameState.currentColumn = null;
     
-    // Spawn a new column
+    // Render the board with the newly placed column
+    renderBoard();
+    
+    // Check for matches
+    if (processMatches()) {
+        // If matches were found, animations will handle spawning the next column
+        return;
+    }
+    
+    // If no matches, spawn a new column
     spawnNewColumn();
 }
 
 // Check for and process matches on the board
 function processMatches() {
-    let matchFound = false;
+    // Find all matches
     const matchedCells = findMatches();
     
     if (matchedCells.length > 0) {
-        matchFound = true;
+        // Play match sound
+        playSound('match');
         
-        // Remove matched jewels
-        for (const cell of matchedCells) {
-            gameState.board[cell.y][cell.x] = null;
-        }
+        // Start match animations
+        animateMatchedJewels(matchedCells);
         
         // Score points (10 points per jewel)
         gameState.score += matchedCells.length * 10;
         updateScoreDisplay();
         
-        playSound('match');
-        
-        // Render the updated board
-        renderBoard();
-        
-        // Let jewels fall to fill empty spaces
-        applyGravity();
-        
-        // Check for additional matches created after jewels fell
-        setTimeout(() => {
-            processMatches();
-        }, 300);
+        // The rest of the match processing will happen when animations complete
+        return true;
     }
     
-    return matchFound;
+    return false;
 }
 
 // Find all matches on the board
 function findMatches() {
     const matchedCells = new Set();
+    const result = [];
     
     // Check for horizontal matches
     for (let y = 0; y < GRID_HEIGHT; y++) {
@@ -708,11 +762,14 @@ function findMatches() {
         }
     }
     
-    // Convert Set to array of objects
-    const result = [];
+    // Convert Set to array of objects and store the jewel type
     for (const cellStr of matchedCells) {
         const [x, y] = cellStr.split(',').map(Number);
-        result.push({ x, y });
+        result.push({ 
+            x, 
+            y, 
+            type: gameState.board[y][x] // Store the jewel type
+        });
     }
     
     return result;
@@ -745,6 +802,389 @@ function applyGravity() {
     }
     
     return jewelsDropped;
+}
+
+// Animate jewels falling to fill empty spaces
+function animateFallingJewels() {
+    // If already animating, don't start another animation
+    if (gameState.animatingMatches) return false;
+    
+    // Find all jewels that need to fall and their destination
+    const fallingJewels = [];
+    const boardCopy = [];
+    
+    // Create a copy of the current board state
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        boardCopy[y] = [];
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            boardCopy[y][x] = gameState.board[y][x];
+        }
+    }
+    
+    // Calculate where each jewel will fall to (similar to applyGravity but without modifying the board)
+    for (let x = 0; x < GRID_WIDTH; x++) {
+        for (let y = GRID_HEIGHT - 2; y >= 0; y--) {
+            if (boardCopy[y][x] !== null) {
+                // Find how far this jewel can fall
+                let dropDistance = 0;
+                let newY = y;
+                
+                while (newY + 1 < GRID_HEIGHT && boardCopy[newY + 1][x] === null) {
+                    dropDistance++;
+                    newY++;
+                    boardCopy[newY][x] = boardCopy[newY - 1][x];
+                    boardCopy[newY - 1][x] = null;
+                }
+                
+                if (dropDistance > 0) {
+                    fallingJewels.push({
+                        x: x,
+                        startY: y,
+                        endY: y + dropDistance,
+                        type: gameState.board[y][x]
+                    });
+                }
+            }
+        }
+    }
+    
+    // If no jewels need to fall, return false
+    if (fallingJewels.length === 0) return false;
+    
+    // Set the animating state
+    gameState.animatingMatches = true;
+    gameState.status = 'animating';
+    
+    // Clear any previous animations
+    animationContainer.removeChildren();
+    gameState.matchAnimations = [];
+    
+    // Create a animation for each falling jewel
+    for (const fallingJewel of fallingJewels) {
+        // Create a jewel sprite for animation
+        const jewel = createJewel(fallingJewel.type);
+        jewel.x = fallingJewel.x * CELL_SIZE;
+        jewel.y = fallingJewel.startY * CELL_SIZE;
+        
+        // Remove the jewel from the board during animation
+        gameState.board[fallingJewel.startY][fallingJewel.x] = null;
+        
+        // Add jewel to animation container
+        animationContainer.addChild(jewel);
+        
+        // Define the animation
+        const animation = {
+            jewel,
+            startY: fallingJewel.startY,
+            endY: fallingJewel.endY,
+            x: fallingJewel.x,
+            type: fallingJewel.type,
+            progress: 0,
+            complete: false,
+            update: (delta) => {
+                // Animation progress from 0 to 1
+                animation.progress += delta * 0.05; // Speed of animation (slower than match animation)
+                
+                if (animation.progress >= 1) {
+                    animation.progress = 1;
+                    animation.complete = true;
+                    
+                    // Once animation is complete, place the jewel at its destination
+                    gameState.board[animation.endY][animation.x] = animation.type;
+                }
+                
+                // Cubic easing for natural falling motion
+                const t = animation.progress;
+                const easedProgress = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                
+                // Calculate the Y position with easing
+                const currentY = fallingJewel.startY + (fallingJewel.endY - fallingJewel.startY) * easedProgress;
+                jewel.y = currentY * CELL_SIZE;
+            }
+        };
+        
+        gameState.matchAnimations.push(animation);
+    }
+    
+    // Re-render the board to update jewel positions
+    renderBoard();
+    
+    return true;
+}
+
+// Create animation for matched jewels
+function animateMatchedJewels(matchedCells) {
+    // If there are no matched cells, return false
+    if (matchedCells.length === 0) return false;
+    
+    // Set the animating state
+    gameState.animatingMatches = true;
+    gameState.status = 'animating';
+    
+    // Clear any previous animations
+    animationContainer.removeChildren();
+    gameState.matchAnimations = [];
+    
+    // First, remove all matched jewels from the board immediately
+    // This ensures they don't show up in the board rendering
+    for (const cell of matchedCells) {
+        gameState.board[cell.y][cell.x] = null;
+    }
+    
+    // Re-render the board immediately to remove matched jewels
+    renderBoard();
+    
+    // Define colors for each jewel type for the animations
+    const colors = [
+        0xFF4444, // Red (Triangle)
+        0x44FF44, // Green (Square)
+        0x4444FF, // Blue (Pentagon)
+        0xFFFF44, // Yellow (Hexagon)
+        0xFF44FF  // Purple (Octagon)
+    ];
+    
+    // Create an animation for each matched cell
+    for (const cell of matchedCells) {
+        const jewelType = cell.type; // Use the stored type since we've cleared the board
+        
+        // Create a jewel sprite for animation
+        const jewel = createJewel(jewelType);
+        jewel.x = cell.x * CELL_SIZE;
+        jewel.y = cell.y * CELL_SIZE;
+        jewel.alpha = 1;
+        jewel.scale.set(1, 1);
+        
+        // Add a particle effect for the jewel
+        const particles = createMatchParticles(jewelType, cell.x, cell.y);
+        animationContainer.addChild(particles);
+        
+        // Create glow around the jewel
+        const glow = new PIXI.Graphics();
+        glow.beginFill(colors[jewelType], 0.3);
+        glow.drawCircle(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE * 0.6);
+        glow.endFill();
+        glow.x = cell.x * CELL_SIZE;
+        glow.y = cell.y * CELL_SIZE;
+        glow.alpha = 0;
+        
+        // Add jewel and glow to animation container
+        animationContainer.addChild(glow);
+        animationContainer.addChild(jewel);
+        
+        // Define the animation using PIXI's ticker
+        const animation = {
+            jewel,
+            glow,
+            particles,
+            progress: 0,
+            complete: false,
+            update: (delta) => {
+                // Animation progress from 0 to 1
+                animation.progress += delta * 0.03; // Speed of animation
+                
+                if (animation.progress >= 1) {
+                    animation.progress = 1;
+                    animation.complete = true;
+                }
+                
+                // First phase: grow and glow (0 to 0.4)
+                if (animation.progress < 0.4) {
+                    const phase = animation.progress / 0.4;
+                    const scale = 1 + phase * 0.5; // Grow up to 1.5x
+                    jewel.scale.set(scale, scale);
+                    glow.alpha = phase;
+                }
+                // Second phase: shrink and fade (0.4 to 1)
+                else {
+                    const phase = (animation.progress - 0.4) / 0.6;
+                    const scale = 1.5 - phase * 1.5; // Shrink from 1.5x to 0
+                    jewel.scale.set(scale, scale);
+                    jewel.alpha = 1 - phase;
+                    glow.alpha = 1 - phase;
+                }
+                
+                // Update particles
+                updateParticles(particles, delta, animation.progress);
+            }
+        };
+        
+        gameState.matchAnimations.push(animation);
+    }
+    
+    return true;
+}
+
+// Create particles for the match animation
+function createMatchParticles(jewelType, gridX, gridY) {
+    const container = new PIXI.Container();
+    container.x = gridX * CELL_SIZE;
+    container.y = gridY * CELL_SIZE;
+    
+    // Define colors for each jewel type
+    const colors = [
+        0xFF4444, // Red (Triangle)
+        0x44FF44, // Green (Square)
+        0x4444FF, // Blue (Pentagon)
+        0xFFFF44, // Yellow (Hexagon)
+        0xFF44FF  // Purple (Octagon)
+    ];
+    
+    // Create 8-12 particles for each jewel
+    const particleCount = 8 + Math.floor(Math.random() * 5);
+    container.particles = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = new PIXI.Graphics();
+        
+        // Draw particle
+        particle.beginFill(colors[jewelType], 0.8);
+        particle.drawCircle(0, 0, 2 + Math.random() * 3);
+        particle.endFill();
+        
+        // Center the particle
+        particle.x = CELL_SIZE / 2;
+        particle.y = CELL_SIZE / 2;
+        
+        // Set random velocity for the particle
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 2;
+        particle.vx = Math.cos(angle) * speed;
+        particle.vy = Math.sin(angle) * speed;
+        
+        // Add to container
+        container.addChild(particle);
+        container.particles.push(particle);
+    }
+    
+    return container;
+}
+
+// Update particle positions and properties
+function updateParticles(particleContainer, delta, progress) {
+    // Start particles after a slight delay
+    if (progress < 0.2) return;
+    
+    // Calculate particle alpha based on overall progress
+    const particleAlpha = progress < 0.7 ? 1 : 1 - ((progress - 0.7) / 0.3);
+    
+    for (const particle of particleContainer.particles) {
+        // Update position
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
+        
+        // Apply some gravity
+        particle.vy += 0.05 * delta;
+        
+        // Fade out
+        particle.alpha = particleAlpha;
+    }
+}
+
+// Update all active animations
+function updateAnimations(delta) {
+    if (!gameState.animatingMatches) return false;
+    
+    // Update all animations
+    let allComplete = true;
+    for (const animation of gameState.matchAnimations) {
+        if (!animation.complete) {
+            animation.update(delta);
+            allComplete = false;
+        }
+    }
+    
+    // If all animations are complete
+    if (allComplete) {
+        // Clean up animations
+        animationContainer.removeChildren();
+        gameState.matchAnimations = [];
+        gameState.animatingMatches = false;
+        
+        // Return to playing state if we were animating
+        if (gameState.status === 'animating') {
+            gameState.status = 'playing';
+        }
+        
+        // Add a small delay before checking for next step
+        // This makes cascading effects more visible
+        setTimeout(() => {
+            // Check for next step in the cascade
+            if (gameState.status === 'playing') {
+                processNextAnimationStep();
+            }
+        }, 150); // Short delay to make cascade more visible
+        
+        return true; // Animations completed
+    }
+    
+    return false; // Animations still in progress
+}
+
+// Finish processing matches after animations complete
+function finishMatchProcess() {
+    // Since matched jewels are already removed in animateMatchedJewels,
+    // we now need to animate the falling jewels
+    
+    // Start falling animation
+    const jewelsFalling = animateFallingJewels();
+    
+    // If no jewels are falling (or animation didn't start), check for more matches or spawn a new column
+    if (!jewelsFalling) {
+        const newMatches = findMatches();
+        if (newMatches.length > 0) {
+            // Process new matches
+            playSound('match');
+            gameState.score += newMatches.length * 10;
+            updateScoreDisplay();
+            animateMatchedJewels(newMatches);
+        } else {
+            // No more matches, spawn a new column
+            spawnNewColumn();
+        }
+    }
+    // If jewels are falling, the falling animation completion will handle further match checking
+}
+
+// Process the next step in the animation sequence
+function processNextAnimationStep() {
+    // If we're animating, wait until animations are complete
+    if (gameState.animatingMatches) {
+        return;
+    }
+    
+    // Check for new matches after jewels have fallen
+    const newMatches = findMatches();
+    
+    if (newMatches.length > 0) {
+        // We have new matches to process
+        playSound('match');
+        gameState.score += newMatches.length * 10;
+        updateScoreDisplay();
+        
+        // Start a new match animation
+        animateMatchedJewels(newMatches);
+    } else {
+        // Check if there are jewels that need to fall
+        const jewelsFalling = animateFallingJewels();
+        
+        // If no jewels are falling and no matches, add delay before spawning a new column
+        if (!jewelsFalling) {
+            // Make sure we don't already have an active column before trying to spawn
+            if (!gameState.currentColumn && gameState.status === 'playing' && !gameState.columnLock) {
+                // Set columnLock to prevent multiple scheduled spawns
+                gameState.columnLock = true;
+                
+                // Add a short delay before spawning the next column to make the sequence clearer
+                setTimeout(() => {
+                    // Only spawn a new column if we're still in playing state and don't already have one
+                    if (gameState.status === 'playing' && !gameState.currentColumn) {
+                        spawnNewColumn();
+                    }
+                    gameState.columnLock = false;
+                }, 300);
+            }
+        }
+    }
 }
 
 // Set up keyboard input handlers
@@ -835,6 +1275,20 @@ function restartGame() {
 
 // Main game loop
 function gameLoop(delta) {
+    // Update animations regardless of game state
+    if (gameState.animatingMatches) {
+        // If animations are complete, process the next step
+        if (updateAnimations(delta)) {
+            finishMatchProcess();
+        }
+        
+        // Disable fast fall if it's somehow active during animations
+        gameState.fastFall = false;
+        
+        // Don't render board while animating matches
+        return;
+    }
+    
     // Only process game logic if we're in playing state
     if (gameState.status !== 'playing') return;
     
@@ -848,7 +1302,7 @@ function gameLoop(delta) {
         gameState.lastFallTime = currentTime;
     }
     
-    // Ensure board is rendered every frame to prevent jewels from disappearing
+    // Render the board only when not animating
     renderBoard();
 }
 
