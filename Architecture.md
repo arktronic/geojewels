@@ -45,12 +45,38 @@ As specified, the implementation will use minimal technologies:
 ```
 GeoJewels/
 ├── index.html         # Main HTML file with embedded CSS
-├── game.js            # Complete game implementation
+├── game.js            # Main game file with initialization and game loop
+├── js/                # JavaScript files directory
+│   ├── board.js       # Board state and management
+│   ├── jewels.js      # Jewel and column mechanics
+│   ├── input.js       # Input handling and controls
+│   ├── matching.js    # Matching algorithm and scoring
+│   ├── renderer.js    # Rendering and animations using Pixi.js
+│   └── sounds.js      # Audio playback and management
 ├── assets/
 │   ├── audio/         # Sound effects and music
 │   └── images/        # Any images needed (minimal)
 └── Architecture.md    # This document
 ```
+
+### Modular Code Organization
+All JavaScript files will be structured as traditional script files (not ES modules) loaded via script tags in the index.html file in the appropriate order:
+
+1. **sounds.js**: Handles audio initialization and playback using Howler.js.
+
+2. **renderer.js**: Contains all rendering logic using Pixi.js, including drawing the board, jewels, UI elements, and animations.
+
+3. **board.js**: Manages the game board representation (2D array), cell state tracking, and placement validation.
+
+4. **jewels.js**: Defines jewel shapes, colors, and properties. Manages column creation, movement, rotation, and collision detection.
+
+5. **matching.js**: Implements the matching algorithm, scoring system, and handles cascading matches.
+
+6. **input.js**: Handles keyboard input capture and mapping to game actions. Maintains input state and processes user actions.
+
+7. **game.js**: Contains the game initialization, global state management, and the main game loop. Acts as the orchestrator for all other components.
+
+Each file exposes its functionality through global objects/namespaces to allow for cross-file communication without requiring ES modules.
 
 ### Component Details
 
