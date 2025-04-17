@@ -12,10 +12,20 @@ const Renderer = {
     activeColumnContainer: null,
     animationContainer: null,
     app: null,
+    
+    // Original cell size and board dimensions
+    originalCellSize: null,
+    originalWidth: null,
+    originalHeight: null,
 
     // Initialize rendering containers
     initialize: function(app) {
         this.app = app;
+        
+        // Store original dimensions
+        this.originalCellSize = CELL_SIZE;
+        this.originalWidth = GRID_WIDTH * CELL_SIZE;
+        this.originalHeight = GRID_HEIGHT * CELL_SIZE;
         
         // Setup containers
         this.boardContainer = new PIXI.Container();
@@ -32,6 +42,41 @@ const Renderer = {
         
         // Draw the grid
         this.drawGrid();
+        
+        // Set up resize listener
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
+        // Initial resize to fit screen
+        this.resizeCanvas();
+    },
+    
+    // Resize canvas and adjust game elements to fit screen
+    resizeCanvas: function() {
+        if (!this.app) return;
+        
+        const gameContainer = document.getElementById('game-container');
+        const mobileControls = document.getElementById('mobile-controls');
+        
+        // Get available dimensions
+        const containerWidth = gameContainer.clientWidth;
+        const containerHeight = gameContainer.clientHeight;
+        
+        // Resize the app renderer
+        this.app.renderer.resize(containerWidth, containerHeight);
+        
+        // Calculate the appropriate scale factor to fit the game board
+        const scaleX = containerWidth / this.originalWidth;
+        const scaleY = containerHeight / this.originalHeight;
+        
+        // Choose the smaller scale to ensure the board fits
+        const scale = Math.min(scaleX, scaleY) * 0.95; // Add a small margin
+        
+        // Scale the board container
+        this.boardContainer.scale.set(scale);
+        
+        // Center the board in the available space
+        this.boardContainer.x = (containerWidth - (this.originalWidth * scale)) / 2;
+        this.boardContainer.y = (containerHeight - (this.originalHeight * scale)) / 2;
     },
 
     // Draw the grid lines
