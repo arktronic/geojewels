@@ -157,6 +157,94 @@
             transform: scale(1.05);
             box-shadow: 0 0 15px rgba(68, 204, 68, 0.8);
         }
+        
+        #audio-options {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 250px;
+            box-shadow: 0 0 10px rgba(68, 204, 68, 0.3);
+        }
+        
+        .audio-option {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            width: 100%;
+            color: white;
+            font-size: 20px;
+            padding: 8px 5px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .audio-option:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .audio-option label {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+            user-select: none;
+            padding: 5px;
+        }
+        
+        .audio-option input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+        
+        .checkmark {
+            display: inline-block;
+            position: relative;
+            height: 28px;
+            width: 28px;
+            margin-right: 12px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(68, 204, 68, 0.6);
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(68, 204, 68, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .audio-option:hover .checkmark {
+            background-color: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 8px rgba(68, 204, 68, 0.5);
+        }
+        
+        .audio-option input:checked ~ .checkmark {
+            background-color: rgba(68, 204, 68, 0.8);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+        
+        .audio-option input:checked ~ .checkmark:after {
+            display: block;
+        }
+        
+        .audio-option .checkmark:after {
+            left: 9px;
+            top: 5px;
+            width: 6px;
+            height: 12px;
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            transform: rotate(45deg);
+        }
     </style>
 </head>
 <body>
@@ -178,6 +266,22 @@
         <div id="start-screen">
             <h1>GeoJewels</h1>
             <button id="begin-button">Begin Game</button>
+            <div id="audio-options">
+                <div class="audio-option">
+                    <label for="music-toggle">
+                        <input type="checkbox" id="music-toggle" checked>
+                        <span class="checkmark"></span>
+                        Music
+                    </label>
+                </div>
+                <div class="audio-option">
+                    <label for="sound-effects-toggle">
+                        <input type="checkbox" id="sound-effects-toggle" checked>
+                        <span class="checkmark"></span>
+                        Sound Effects
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
