@@ -128,21 +128,43 @@ const Input = {
     
     // Detect if the user is on a mobile device
     detectMobileDevice: function() {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                         window.innerWidth <= 768;
+        // Check for actual mobile device using user agent
+        const isTouchDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Adjust game container dimensions for mobile
-        if (isMobile) {
+        // Check for small screen size
+        const isSmallScreen = window.innerWidth <= 768;
+        
+        // Controls should only be shown for actual mobile devices, not just small desktop windows
+        if (isTouchDevice) {
             const gameContainer = document.getElementById('game-container');
             
-            // Set mobile controls to display flex (should also be handled by CSS media query)
+            // Set mobile controls to display flex
             document.getElementById('mobile-controls').style.display = 'flex';
             
-            // Additional adjustments if needed based on screen orientation
+            // Additional adjustments based on screen orientation
             this.handleOrientation();
             
             // Listen for orientation changes
             window.addEventListener('resize', () => this.handleOrientation());
+        } else if (isSmallScreen) {
+            // For desktop at lower resolutions, just handle the scaling
+            this.handleLowResolutionDesktop();
+            
+            // Listen for resize events on desktop
+            window.addEventListener('resize', () => this.handleLowResolutionDesktop());
+        }
+    },
+    
+    // Handle desktop at lower resolutions
+    handleLowResolutionDesktop: function() {
+        const gameContainer = document.getElementById('game-container');
+        
+        // Make sure the mobile controls are hidden on desktop
+        document.getElementById('mobile-controls').style.display = 'none';
+        
+        // Force game renderer to resize
+        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
+            Renderer.resizeCanvas();
         }
     },
     

@@ -43,8 +43,20 @@ const Renderer = {
         // Draw the grid
         this.drawGrid();
         
-        // Set up resize listener
-        window.addEventListener('resize', () => this.resizeCanvas());
+        // Set up resize listener - use immediate execution without delay
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // Clear any pending resize to prevent multiple calls
+            clearTimeout(resizeTimeout);
+            
+            // Execute resize immediately and schedule another one to catch any additional changes
+            this.resizeCanvas();
+            
+            // Force another resize after a very short delay to ensure UI has updated
+            resizeTimeout = setTimeout(() => {
+                this.resizeCanvas();
+            }, 10);
+        });
         
         // Initial resize to fit screen
         this.resizeCanvas();
@@ -55,28 +67,44 @@ const Renderer = {
         if (!this.app) return;
         
         const gameContainer = document.getElementById('game-container');
-        const mobileControls = document.getElementById('mobile-controls');
         
         // Get available dimensions
-        const containerWidth = gameContainer.clientWidth;
-        const containerHeight = gameContainer.clientHeight;
+        const containerWidth = gameContainer.clientWidth || window.innerWidth;
+        const containerHeight = gameContainer.clientHeight || window.innerHeight;
         
-        // Resize the app renderer
+        // Simply resize the existing renderer - don't recreate the canvas
         this.app.renderer.resize(containerWidth, containerHeight);
         
         // Calculate the appropriate scale factor to fit the game board
         const scaleX = containerWidth / this.originalWidth;
         const scaleY = containerHeight / this.originalHeight;
         
-        // Choose the smaller scale to ensure the board fits
-        const scale = Math.min(scaleX, scaleY) * 0.95; // Add a small margin
+        // Choose the smaller scale to ensure the board fits completely
+        let scale;
         
-        // Scale the board container
-        this.boardContainer.scale.set(scale);
+        // For larger screens, we can scale up to a reasonable size
+        if (Math.min(scaleX, scaleY) > 1) {
+            scale = Math.min(Math.min(scaleX, scaleY), 1.5);
+        } else {
+            // For smaller screens, ensure everything fits
+            scale = Math.min(scaleX, scaleY) * 0.9;
+        }
+        
+        // Apply scale immediately
+        this.boardContainer.scale.x = scale;
+        this.boardContainer.scale.y = scale;
         
         // Center the board in the available space
-        this.boardContainer.x = (containerWidth - (this.originalWidth * scale)) / 2;
-        this.boardContainer.y = (containerHeight - (this.originalHeight * scale)) / 2;
+        this.boardContainer.x = Math.max(0, (containerWidth - (this.originalWidth * scale)) / 2);
+        this.boardContainer.y = Math.max(0, (containerHeight - (this.originalHeight * scale)) / 2);
+        
+        // Force the stage to update
+        this.app.stage.calculateBounds();
+        
+        // Ensure update happens immediately
+        if (this.app.ticker && !this.app.ticker.started) {
+            this.app.render();
+        }
     },
 
     // Draw the grid lines
