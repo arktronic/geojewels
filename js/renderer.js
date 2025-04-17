@@ -86,8 +86,8 @@ const Renderer = {
         if (Math.min(scaleX, scaleY) > 1) {
             scale = Math.min(Math.min(scaleX, scaleY), 1.5);
         } else {
-            // For smaller screens, ensure everything fits
-            scale = Math.min(scaleX, scaleY) * 0.9;
+            // For smaller screens, ensure everything fits with a consistent scale factor
+            scale = Math.min(scaleX, scaleY) * 0.88; // Slight reduction for all mobile devices
         }
         
         // Apply scale immediately
@@ -95,8 +95,12 @@ const Renderer = {
         this.boardContainer.scale.y = scale;
         
         // Center the board in the available space
+        // Add a small upward offset on mobile to prevent virtual button overlaps
+        const isMobile = window.innerWidth <= 768;
+        const verticalOffset = isMobile ? -15 : 0; // Move up by 15px on mobile devices
+        
         this.boardContainer.x = Math.max(0, (containerWidth - (this.originalWidth * scale)) / 2);
-        this.boardContainer.y = Math.max(0, (containerHeight - (this.originalHeight * scale)) / 2);
+        this.boardContainer.y = Math.max(0, (containerHeight - (this.originalHeight * scale)) / 2) + verticalOffset;
         
         // Force the stage to update
         this.app.stage.calculateBounds();

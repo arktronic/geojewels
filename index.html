@@ -303,15 +303,32 @@
         @media (max-width: 768px) {
             #game-container {
                 width: 100% !important;
-                height: calc(100vh - 100px) !important; /* Increased safe area for virtual buttons */
-                margin-bottom: 100px; /* Increased margin to move game area up */
+                height: auto !important; /* Let JavaScript control the height */
                 max-height: 90vh; /* Limit maximum height */
+                position: relative;
+                /* Remove fixed margin - let JS control this */
             }
             
             #mobile-controls {
                 display: flex;
-                padding: 15px 0; /* Increased padding for better touch targets */
-                bottom: env(safe-area-inset-bottom, 0); /* Use safe area if available */
+                padding: 15px 0;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                z-index: 100; /* Ensure controls stay on top */
+                background-color: rgba(0, 0, 0, 0.8); /* Darker background for better visibility */
+            }
+            
+            /* Firefox for Android specific adjustments */
+            @supports (-moz-appearance:none) and (display:contents) {
+                #game-container {
+                    margin-bottom: 120px !important; /* Extra space specifically for Firefox */
+                }
+                
+                #mobile-controls {
+                    padding-bottom: 25px; /* Extra padding at bottom for virtual buttons */
+                }
             }
             
             #score-display {

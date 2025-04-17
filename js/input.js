@@ -173,13 +173,18 @@ const Input = {
         const gameContainer = document.getElementById('game-container');
         const mobileControls = document.getElementById('mobile-controls');
         
-        // Calculate available height (screen height minus controls height)
+        // Calculate available height with additional buffer for virtual buttons
         const controlsHeight = mobileControls.offsetHeight;
-        const availableHeight = window.innerHeight - controlsHeight;
         
-        // Set game container height
+        // Add a consistent buffer for all mobile browsers to handle virtual buttons
+        const standardBufferZone = 40; // Standard buffer for all devices
+        
+        // Set the available height with the buffer
+        const availableHeight = window.innerHeight - controlsHeight - standardBufferZone;
+        
+        // Set game container height and position
         gameContainer.style.height = `${availableHeight}px`;
-        gameContainer.style.marginBottom = `${controlsHeight}px`;
+        gameContainer.style.marginBottom = `${controlsHeight + standardBufferZone}px`;
         
         // Force game renderer to resize
         if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {

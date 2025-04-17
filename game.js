@@ -63,6 +63,35 @@ const Game = {
         
         // Make sure the start screen is showing
         Game.showStartScreen();
+        
+        // Add generic layout optimizations for mobile devices
+        Game.addMobileOptimizations();
+    },
+    
+    // Add layout optimizations for mobile that work across all browsers
+    addMobileOptimizations: function() {
+        // Listen for orientation changes which can affect layout
+        window.addEventListener('orientationchange', () => {
+            // Recalculate layout after orientation change with a small delay
+            setTimeout(() => {
+                if (typeof Input !== 'undefined' && Input.handleOrientation) {
+                    Input.handleOrientation();
+                }
+                if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
+                    Renderer.resizeCanvas();
+                }
+            }, 300);
+        });
+        
+        // Force an immediate layout calculation
+        setTimeout(() => {
+            if (typeof Input !== 'undefined' && Input.handleOrientation) {
+                Input.handleOrientation();
+            }
+            if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
+                Renderer.resizeCanvas();
+            }
+        }, 100);
     },
 
     // Start the actual game
