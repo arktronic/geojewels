@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>GeoJewels</title>
@@ -303,12 +303,15 @@
         @media (max-width: 768px) {
             #game-container {
                 width: 100% !important;
-                height: calc(100vh - 80px) !important; /* Leave room for controls */
-                margin-bottom: 80px;
+                height: calc(100vh - 100px) !important; /* Increased safe area for virtual buttons */
+                margin-bottom: 100px; /* Increased margin to move game area up */
+                max-height: 90vh; /* Limit maximum height */
             }
             
             #mobile-controls {
                 display: flex;
+                padding: 15px 0; /* Increased padding for better touch targets */
+                bottom: env(safe-area-inset-bottom, 0); /* Use safe area if available */
             }
             
             #score-display {
