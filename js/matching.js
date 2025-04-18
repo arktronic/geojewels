@@ -19,7 +19,7 @@ const Matching = {
             
             // Score points (10 points per jewel)
             gameState.score += matchedCells.length * 10;
-            Game.updateScoreDisplay();
+            Game.updateScoreDisplay(); // This will also trigger level check
             
             // The rest of the match processing will happen when animations complete
             return true;
@@ -444,7 +444,7 @@ const Matching = {
             // We have new matches to process
             Sounds.play('match');
             gameState.score += newMatches.length * 10;
-            Game.updateScoreDisplay();
+            Game.updateScoreDisplay(); // This will also trigger level check
             
             // Start a new match animation
             this.animateMatchedJewels(newMatches);

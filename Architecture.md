@@ -143,6 +143,16 @@ The game will use Pixi.js (a high-performance 2D WebGL renderer) for rendering a
 - Draw UI elements (score, etc.)
 - Handle animations and transitions
 
+## Game Mechanics
+
+### Difficulty Level System
+- The game incorporates a progressive difficulty system
+- Players start at level 1
+- Every 1000 points the level increases
+- Each level increases the falling speed of columns by 10%
+- Current level is displayed on screen alongside the player's score
+- Maximum speed is capped at 80% faster than the base speed
+
 ## Implementation Roadmap
 
 ### Phase 1: Basic Setup
@@ -167,6 +177,8 @@ The game will use Pixi.js (a high-performance 2D WebGL renderer) for rendering a
 - Add animations using Pixi.js tweening
 - Implement UI elements
 - Final testing and bug fixes
+- Responsive design for mobile play
+- Touch controls for mobile devices
 
 ## Performance Considerations
 - Use Pixi.js WebGL rendering for improved performance
@@ -176,10 +188,7 @@ The game will use Pixi.js (a high-performance 2D WebGL renderer) for rendering a
 - Utilize sprite sheet for any graphics
 
 ## Future Enhancements (Beyond MVP)
-- Difficulty levels (increasing speed)
 - Special jewels with unique powers
 - Combo system for scoring
 - Local high score persistence
 - Visual effects for matches and combos
-- Responsive design for mobile play
-- Touch controls for mobile devices

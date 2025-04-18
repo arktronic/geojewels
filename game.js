@@ -12,6 +12,8 @@ const COLUMN_SIZE = 3; // Number of jewels in a column
 const MATCH_REQUIRED = 3; // Number of same jewels required for a match
 const FALL_SPEED = 500; // Base speed in ms for jewel column to fall one cell
 const FAST_FALL_MULTIPLIER = 10; // How much faster when pressing down
+const POINTS_PER_LEVEL = 1000; // Points needed to increase level
+const SPEED_INCREASE_PER_LEVEL = 0.10; // 10% speed increase per level
 
 // Global game state
 let gameState = {
@@ -19,6 +21,7 @@ let gameState = {
     currentColumn: null, // Current active column
     nextJewels: null, // Pre-generated jewels for the next column
     score: 0,
+    level: 1, // Current difficulty level
     status: 'start', // 'start', 'playing', 'paused', 'gameOver', 'animating'
     lastFallTime: 0, // Time of last fall
     fallInterval: FALL_SPEED,
@@ -63,6 +66,7 @@ const Game = {
         
         // Reset the UI
         Game.updateScoreDisplay();
+        Game.updateLevelDisplay();
         
         // Make sure the start screen is showing
         Game.showStartScreen();
@@ -205,13 +209,46 @@ const Game = {
     // Update the score display
     updateScoreDisplay: function() {
         document.getElementById('score-display').textContent = `Score: ${gameState.score}`;
+        
+        // Check if level should increase
+        this.checkLevelUp();
+    },
+    
+    // Update the level display
+    updateLevelDisplay: function() {
+        document.getElementById('level-display').textContent = `Level: ${gameState.level}`;
+    },
+    
+    // Check if level should increase and handle level up
+    checkLevelUp: function() {
+        const newLevel = Math.floor(gameState.score / POINTS_PER_LEVEL) + 1;
+        
+        if (newLevel > gameState.level) {
+            gameState.level = newLevel;
+            this.adjustFallSpeed();
+            this.updateLevelDisplay();
+            
+            // Play a sound for level up (you can add a dedicated sound later)
+            Sounds.play('match');
+        }
+    },
+    
+    // Adjust fall speed based on current level
+    adjustFallSpeed: function() {
+        // Calculate speed reduction factor based on level (higher level = faster falling)
+        // Formula: base speed * (1 - (level-1) * speed increase per level)
+        // This ensures the fall interval decreases as level increases
+        const speedFactor = Math.max(0.2, 1 - ((gameState.level - 1) * SPEED_INCREASE_PER_LEVEL));
+        gameState.fallInterval = FALL_SPEED * speedFactor;
     },
 
     // Restart the game
     restartGame: function() {
         // Reset game state
         gameState.score = 0;
+        gameState.level = 1;
         gameState.status = 'playing';
+        gameState.fallInterval = FALL_SPEED; // Reset falling speed
         
         // Clear the board
         Board.initialize();
@@ -222,6 +259,7 @@ const Game = {
         
         // Reset UI
         Game.updateScoreDisplay();
+        Game.updateLevelDisplay();
         Game.hideGameOverScreen();
         
         // Restart music

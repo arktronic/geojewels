@@ -82,6 +82,12 @@
             left: 20px;
         }
         
+        #level-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
         #game-over {
             position: absolute;
             top: 0;
@@ -350,6 +356,12 @@
                 left: 10px;
             }
             
+            #level-display {
+                font-size: 18px;
+                top: 10px;
+                right: 10px;
+            }
+            
             #start-screen h1, #game-over h1 {
                 font-size: 36px;
             }
@@ -388,6 +400,7 @@
             <!-- Game canvas will be added here by Pixi.js -->
             <div id="ui-overlay">
                 <div id="score-display">Score: 0</div>
+                <div id="level-display">Level: 1</div>
             </div>
             <div id="game-over">
                 <h1>Game Over</h1>
