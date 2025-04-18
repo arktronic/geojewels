@@ -24,8 +24,6 @@ const Sounds = {
     // Audio system status
     audioContext: null,
     audioInitialized: false,
-    // Track pending sound operations
-    pendingSounds: {},
 
     // Initialize all sound effects
     initialize: function() {
@@ -50,9 +48,7 @@ const Sounds = {
                 onloaderror: () => console.log("Warning: match sound not found")
             }),
             place: new Howl({ 
-                // Use the more reliable 'rotate' sound for now (as a test)
-                // This helps us determine if it's a file issue or a timing issue
-                src: ['assets/audio/rotate.mp3'], 
+                src: ['assets/audio/place.mp3'],
                 volume: 0.5,
                 preload: true,
                 onloaderror: () => console.log("Warning: place sound not found")
@@ -144,33 +140,13 @@ const Sounds = {
             } else {
                 // Only play sound effects if sound effects are enabled
                 if (this.settings.soundEffectsEnabled) {
-                    // Clear any pending timeout for this sound
-                    if (this.pendingSounds[soundName]) {
-                        clearTimeout(this.pendingSounds[soundName]);
-                        this.pendingSounds[soundName] = null;
+                    // On mobile devices, ensure clean playback by stopping previous instances
+                    if (this.isMobileDevice()) {
+                        this.sounds[soundName].stop();
                     }
                     
-                    // Special handling for "place" sound which needs more careful handling
-                    if (soundName === 'place') {
-                        // Schedule the sound with a smaller delay to ensure it plays at the right time
-                        this.pendingSounds[soundName] = setTimeout(() => {
-                            // Ensure fully stopped before playing again
-                            this.sounds[soundName].stop();
-                            
-                            // Minimal delay to ensure the audio system is ready
-                            setTimeout(() => {
-                                const id = this.sounds[soundName].play();
-                                // Set volume explicitly to ensure it plays audibly
-                                this.sounds[soundName].volume(0.5, id);
-                                this.pendingSounds[soundName] = null;
-                            }, 5);
-                        }, 15); // Reduced from 50ms to 15ms
-                    } else {
-                        // For other sounds, use standard approach but still stop before playing
-                        // to ensure clean playback
-                        this.sounds[soundName].stop();
-                        this.sounds[soundName].play();
-                    }
+                    // Play the sound effect
+                    this.sounds[soundName].play();
                 }
             }
         } catch (e) {
@@ -181,12 +157,6 @@ const Sounds = {
     // Stop a specific sound
     stop: function(soundName) {
         try {
-            // Cancel any pending play operations for this sound
-            if (this.pendingSounds[soundName]) {
-                clearTimeout(this.pendingSounds[soundName]);
-                this.pendingSounds[soundName] = null;
-            }
-            
             if (this.sounds[soundName]) {
                 this.sounds[soundName].stop();
             }
