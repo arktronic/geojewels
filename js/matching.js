@@ -361,7 +361,28 @@ const Matching = {
         if (allComplete) {
             // Clean up animations
             Renderer.clearAnimationContainer();
-            gameState.matchAnimations = [];
+            
+            // Clean up animation objects to prevent memory leaks
+            for (const animation of gameState.matchAnimations) {
+                // Remove references to PIXI objects to help garbage collection
+                if (animation.jewel) {
+                    animation.jewel = null;
+                }
+                
+                if (animation.glow) {
+                    animation.glow = null;
+                }
+                
+                if (animation.particles) {
+                    if (animation.particles.particles) {
+                        animation.particles.particles.length = 0;
+                    }
+                    animation.particles = null;
+                }
+            }
+            
+            // Clear the animation array
+            gameState.matchAnimations.length = 0;
             gameState.animatingMatches = false;
             
             // Return to playing state if we were animating

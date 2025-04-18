@@ -58,6 +58,9 @@ const Game = {
         // Start the game loop
         app.ticker.add((delta) => Game.gameLoop(delta));
         
+        // Store app reference for potential cleanup
+        this.app = app;
+        
         // Reset the UI
         Game.updateScoreDisplay();
         
@@ -92,6 +95,47 @@ const Game = {
                 Renderer.resizeCanvas();
             }
         }, 100);
+    },
+
+    // Clean up resources to prevent memory leaks
+    cleanup: function() {
+        // Clean up PIXI application
+        if (this.app) {
+            // Stop the ticker
+            this.app.ticker.stop();
+            
+            // Destroy the renderer
+            this.app.renderer.destroy(true);
+            
+            // Remove all references
+            this.app = null;
+        }
+        
+        // Clean up animations
+        if (gameState.matchAnimations) {
+            gameState.matchAnimations.length = 0;
+        }
+        
+        // Additional cleanup
+        if (typeof Renderer !== 'undefined') {
+            Renderer.clearAnimationContainer();
+            Renderer.clearActiveColumn();
+        }
+        
+        // Clear board references
+        if (typeof Board !== 'undefined' && Board.initialize) {
+            Board.initialize();
+        }
+        
+        // Clean up input handlers if applicable
+        if (typeof Input !== 'undefined' && Input.cleanup) {
+            Input.cleanup();
+        }
+        
+        // Clean up sounds if applicable
+        if (typeof Sounds !== 'undefined' && Sounds.cleanup) {
+            Sounds.cleanup();
+        }
     },
 
     // Start the actual game

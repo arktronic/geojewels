@@ -61,7 +61,7 @@ const Renderer = {
         // Initial resize to fit screen
         this.resizeCanvas();
     },
-    
+
     // Resize canvas and adjust game elements to fit screen
     resizeCanvas: function() {
         if (!this.app) return;
@@ -144,6 +144,11 @@ const Renderer = {
 
     // Render the placed jewels on the board
     renderBoard: function() {
+        // Properly destroy existing jewels to prevent memory leaks
+        for (let i = this.jewelContainer.children.length - 1; i >= 0; i--) {
+            const child = this.jewelContainer.children[i];
+            child.destroy({children: true, texture: true, baseTexture: true});
+        }
         this.jewelContainer.removeChildren();
         
         for (let y = 0; y < GRID_HEIGHT; y++) {
@@ -167,6 +172,11 @@ const Renderer = {
 
     // Render the current active column
     renderActiveColumn: function() {
+        // Properly destroy existing column jewels
+        for (let i = this.activeColumnContainer.children.length - 1; i >= 0; i--) {
+            const child = this.activeColumnContainer.children[i];
+            child.destroy({children: true, texture: true, baseTexture: true});
+        }
         this.activeColumnContainer.removeChildren();
         
         if (!gameState.currentColumn) return;
@@ -185,11 +195,29 @@ const Renderer = {
 
     // Clear the active column container
     clearActiveColumn: function() {
+        // Properly destroy active column jewels
+        for (let i = this.activeColumnContainer.children.length - 1; i >= 0; i--) {
+            const child = this.activeColumnContainer.children[i];
+            child.destroy({children: true, texture: true, baseTexture: true});
+        }
         this.activeColumnContainer.removeChildren();
     },
 
     // Clear the animation container
     clearAnimationContainer: function() {
+        // Properly destroy all children to prevent memory leaks
+        for (let i = this.animationContainer.children.length - 1; i >= 0; i--) {
+            const child = this.animationContainer.children[i];
+            
+            // If the child has particles, make sure to clean them up too
+            if (child.particles && child.particles.length) {
+                child.particles.length = 0;
+            }
+            
+            // Properly destroy the child to free up memory
+            child.destroy({children: true, texture: true, baseTexture: true});
+        }
+        
         this.animationContainer.removeChildren();
     },
 
