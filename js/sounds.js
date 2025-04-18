@@ -35,40 +35,32 @@ const Sounds = {
                 src: ['assets/audio/move.mp3'],
                 volume: 0.5,
                 preload: true,
-                html5: false,
-                format: ['mp3'],
                 onloaderror: () => console.log("Warning: move sound not found")
             }),
             rotate: new Howl({ 
                 src: ['assets/audio/rotate.mp3'],
                 volume: 0.5,
                 preload: true,
-                html5: false,
-                format: ['mp3'],
                 onloaderror: () => console.log("Warning: rotate sound not found")
             }),
             match: new Howl({ 
                 src: ['assets/audio/match.mp3'],
                 volume: 0.7,
                 preload: true,
-                html5: false,
-                format: ['mp3'],
                 onloaderror: () => console.log("Warning: match sound not found")
             }),
             place: new Howl({ 
-                src: ['assets/audio/place.mp3'],
+                // Use the more reliable 'rotate' sound for now (as a test)
+                // This helps us determine if it's a file issue or a timing issue
+                src: ['assets/audio/rotate.mp3'], 
                 volume: 0.5,
                 preload: true,
-                html5: false,
-                format: ['mp3'],
-                pool: 5, // Increased pool to ensure sound always plays
                 onloaderror: () => console.log("Warning: place sound not found")
             }),
             gameOver: new Howl({ 
                 src: ['assets/audio/gameover.mp3'],
                 volume: 0.8,
                 preload: true,
-                format: ['mp3'],
                 onloaderror: () => console.log("Warning: game over sound not found")
             }),
             bgMusic: new Howl({
