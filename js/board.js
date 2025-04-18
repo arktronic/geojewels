@@ -51,7 +51,21 @@ const Board = {
             }
         }
         
-        Sounds.play('place');
+        // Play the place sound immediately with direct WebAudio API access for more reliable playback
+        try {
+            // Force stopping any previous instances first to ensure clean playback
+            Sounds.sounds.place.stop();
+            
+            // Create a new ID for this sound instance
+            const soundId = Sounds.sounds.place.play();
+            
+            // Make sure volume is set explicitly on the specific sound instance
+            if (soundId) {
+                Sounds.sounds.place.volume(0.5, soundId);
+            }
+        } catch (e) {
+            console.log("Error playing place sound:", e);
+        }
         
         // Clear the active column container immediately
         Renderer.clearActiveColumn();
