@@ -10,6 +10,7 @@ const Sounds = {
         rotate: null,
         match: null,
         place: null,
+        levelUp: null,
         bgMusic: null
     },
 
@@ -44,6 +45,12 @@ const Sounds = {
                 volume: 0.5,
                 preload: true,
                 onloaderror: () => console.log("Warning: place sound not found")
+            }),
+            levelUp: new Howl({
+                src: ['assets/audio/levelup.mp3'],
+                volume: 0.6,
+                preload: true,
+                onloaderror: () => console.log("Warning: level up sound not found")
             }),
             bgMusic: new Howl({
                 src: ['assets/audio/bgmusic.mp3'],

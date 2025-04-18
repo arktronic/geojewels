@@ -120,6 +120,16 @@ const Game = {
             gameState.matchAnimations.length = 0;
         }
         
+        // Clean up fireworks if they're active
+        if (typeof Renderer !== 'undefined' && Renderer.clearFireworks) {
+            Renderer.clearFireworks();
+        }
+        
+        // Clean up floating text if active
+        if (typeof Renderer !== 'undefined' && Renderer.clearFloatingTexts) {
+            Renderer.clearFloatingTexts();
+        }
+        
         // Additional cleanup
         if (typeof Renderer !== 'undefined') {
             Renderer.clearAnimationContainer();
@@ -223,12 +233,57 @@ const Game = {
         const newLevel = Math.floor(gameState.score / POINTS_PER_LEVEL) + 1;
         
         if (newLevel > gameState.level) {
+            // Store the previous level
+            const previousLevel = gameState.level;
+            
+            // Update the level
             gameState.level = newLevel;
             this.adjustFallSpeed();
             this.updateLevelDisplay();
             
-            // Play a sound for level up (you can add a dedicated sound later)
-            Sounds.play('match');
+            // Play level up sound instead of match sound
+            Sounds.play('levelUp');
+            
+            // Trigger fireworks celebration
+            Renderer.createFireworks();
+            
+            // Show level-up floating text - use Renderer's app reference, not Game's
+            if (Renderer.app) {
+                const centerX = Renderer.app.renderer.width / 2;
+                const centerY = Renderer.app.renderer.height / 2;
+                
+                // Create floating text with level number - more translucent with even shorter duration
+                Renderer.createFloatingText(`LEVEL ${newLevel}!`, centerX, centerY, {
+                    fontSize: 48,
+                    color: 0xFFFF44, // Yellow color
+                    outlineColor: 0xFF6600, // Orange outline
+                    outlineThickness: 5,
+                    duration: 1500, // Even shorter duration (1.5 seconds)
+                    rise: 150,      // Moderate rise
+                    startScale: 2.0,
+                    endScale: 1.2,
+                    maxAlpha: 0.5   // More translucent (50% opacity)
+                });
+            }
+            
+            // Add a brief pause in game action to emphasize the level up
+            const wasPlaying = gameState.status === 'playing';
+            
+            if (wasPlaying) {
+                // Only pause briefly if we're going from level 1 to 2 or higher
+                // This prevents pausing when starting a new game
+                if (previousLevel >= 1) {
+                    gameState.status = 'animating'; // Use animating state to pause gameplay
+                    
+                    // Resume the game after a short delay (1 second)
+                    setTimeout(() => {
+                        // Only resume if we're still in the animating state from the level-up
+                        if (gameState.status === 'animating') {
+                            gameState.status = 'playing';
+                        }
+                    }, 1000);
+                }
+            }
         }
     },
     
