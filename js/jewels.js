@@ -111,7 +111,17 @@ const Jewels = {
             return;
         }
         
+        // Set the fast fall state
         gameState.fastFall = fast;
+        
+        // If enabling fast fall, immediately move the piece down
+        // This provides more responsive feedback, especially on mobile
+        if (fast && gameState.currentColumn) {
+            // Apply immediate fall step when fast fall is activated
+            this.fallOneStep();
+            // Reset the last fall time to prevent immediate double-falls
+            gameState.lastFallTime = Date.now();
+        }
     },
 
     // Move the current column down by one cell

@@ -78,8 +78,10 @@ const Input = {
             }
         });
         
-        // Fast fall button
+        // Fast fall button - improve handling for this specific button
         const downButton = document.getElementById('mobile-down');
+        
+        // On touchstart, enable fast fall
         downButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (gameState.status === 'playing') {
@@ -87,7 +89,24 @@ const Input = {
             }
         });
         
+        // On touchend, disable fast fall
         downButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (gameState.status === 'playing') {
+                Jewels.setFastFall(false);
+            }
+        });
+        
+        // Also handle touchcancel (occurs when touch is interrupted)
+        downButton.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            if (gameState.status === 'playing') {
+                Jewels.setFastFall(false);
+            }
+        });
+        
+        // Handle touchleave as well (for completeness)
+        downButton.addEventListener('touchleave', (e) => {
             e.preventDefault();
             if (gameState.status === 'playing') {
                 Jewels.setFastFall(false);
@@ -124,6 +143,24 @@ const Input = {
                 Jewels.setFastFall(false);
             }
         });
+        
+        downButton.addEventListener('mouseleave', () => {
+            if (gameState.status === 'playing') {
+                Jewels.setFastFall(false);
+            }
+        });
+    },
+    
+    // Clean up event handlers
+    cleanup: function() {
+        if (this.eventHandlers) {
+            this.eventHandlers.forEach(({ element, events }) => {
+                events.forEach(({ type, handler }) => {
+                    element.removeEventListener(type, handler);
+                });
+            });
+            this.eventHandlers = [];
+        }
     },
     
     // Detect if the user is on a mobile device
@@ -172,19 +209,27 @@ const Input = {
     handleOrientation: function() {
         const gameContainer = document.getElementById('game-container');
         const mobileControls = document.getElementById('mobile-controls');
+        const mobileWrapper = document.querySelector('.mobile-wrapper');
         
         // Calculate available height with additional buffer for virtual buttons
         const controlsHeight = mobileControls.offsetHeight;
+        const standardBufferZone = 30; // Reduced buffer zone for cleaner look
         
-        // Add a consistent buffer for all mobile browsers to handle virtual buttons
-        const standardBufferZone = 40; // Standard buffer for all devices
-        
-        // Set the available height with the buffer
+        // Calculate available game area height
         const availableHeight = window.innerHeight - controlsHeight - standardBufferZone;
         
-        // Set game container height and position
+        // Update game container size
         gameContainer.style.height = `${availableHeight}px`;
-        gameContainer.style.marginBottom = `${controlsHeight + standardBufferZone}px`;
+        
+        // Enable pointer events on mobile controls
+        mobileControls.style.pointerEvents = 'auto';
+        
+        // Update wrapper height to make sure it covers the entire viewport
+        mobileWrapper.style.pointerEvents = 'none';
+        
+        // Position the game container with appropriate space from the bottom
+        // This creates a natural gap without adding any additional elements
+        mobileWrapper.style.paddingBottom = `${controlsHeight + standardBufferZone}px`;
         
         // Force game renderer to resize
         if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {

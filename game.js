@@ -249,6 +249,8 @@ const Game = {
         if (gameState.status !== 'playing') return;
         
         const currentTime = Date.now();
+        
+        // Use a more responsive fall interval during fast fall
         const effectiveFallInterval = gameState.fastFall ? 
             gameState.fallInterval / FAST_FALL_MULTIPLIER : 
             gameState.fallInterval;

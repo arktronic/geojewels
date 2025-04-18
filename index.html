@@ -264,6 +264,41 @@
             z-index: 15;
             pointer-events: auto;
             backdrop-filter: blur(5px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for visual separation */
+        }
+        
+        /* Mobile wrapper styles - container for responsive design */
+        .mobile-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none; /* Let clicks pass through to elements below */
+            z-index: 5; /* Ensure it's above background but below controls */
+        }
+        
+        /* Add subtle gradient transition between game and controls on mobile */
+        @media (max-width: 768px) {
+            .mobile-wrapper::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 30px; /* Matches our buffer zone height in JS */
+                background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.3));
+                pointer-events: none;
+                z-index: 6;
+            }
+            
+            #mobile-controls {
+                box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+            }
         }
         
         .control-button {
@@ -306,29 +341,7 @@
                 height: auto !important; /* Let JavaScript control the height */
                 max-height: 90vh; /* Limit maximum height */
                 position: relative;
-                /* Remove fixed margin - let JS control this */
-            }
-            
-            #mobile-controls {
-                display: flex;
-                padding: 15px 0;
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                z-index: 100; /* Ensure controls stay on top */
-                background-color: rgba(0, 0, 0, 0.8); /* Darker background for better visibility */
-            }
-            
-            /* Firefox for Android specific adjustments */
-            @supports (-moz-appearance:none) and (display:contents) {
-                #game-container {
-                    margin-bottom: 120px !important; /* Extra space specifically for Firefox */
-                }
-                
-                #mobile-controls {
-                    padding-bottom: 25px; /* Extra padding at bottom for virtual buttons */
-                }
+                margin-bottom: 0 !important; /* Remove margin */
             }
             
             #score-display {
@@ -369,32 +382,35 @@
         <div id="stars-container"></div>
     </div>
     
-    <div id="game-container">
-        <!-- Game canvas will be added here by Pixi.js -->
-        <div id="ui-overlay">
-            <div id="score-display">Score: 0</div>
-        </div>
-        <div id="game-over">
-            <h1>Game Over</h1>
-            <button id="restart-button">Play Again</button>
-        </div>
-        <div id="start-screen">
-            <h1>GeoJewels</h1>
-            <button id="begin-button">Begin Game</button>
-            <div id="audio-options">
-                <div class="audio-option">
-                    <label for="music-toggle">
-                        <input type="checkbox" id="music-toggle" checked>
-                        <span class="checkmark"></span>
-                        Music
-                    </label>
-                </div>
-                <div class="audio-option">
-                    <label for="sound-effects-toggle">
-                        <input type="checkbox" id="sound-effects-toggle" checked>
-                        <span class="checkmark"></span>
-                        Sound Effects
-                    </label>
+    <!-- Mobile wrapper for better responsive layout -->
+    <div class="mobile-wrapper">
+        <div id="game-container">
+            <!-- Game canvas will be added here by Pixi.js -->
+            <div id="ui-overlay">
+                <div id="score-display">Score: 0</div>
+            </div>
+            <div id="game-over">
+                <h1>Game Over</h1>
+                <button id="restart-button">Play Again</button>
+            </div>
+            <div id="start-screen">
+                <h1>GeoJewels</h1>
+                <button id="begin-button">Begin Game</button>
+                <div id="audio-options">
+                    <div class="audio-option">
+                        <label for="music-toggle">
+                            <input type="checkbox" id="music-toggle" checked>
+                            <span class="checkmark"></span>
+                            Music
+                        </label>
+                    </div>
+                    <div class="audio-option">
+                        <label for="sound-effects-toggle">
+                            <input type="checkbox" id="sound-effects-toggle" checked>
+                            <span class="checkmark"></span>
+                            Sound Effects
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -439,7 +455,9 @@
                 backgroundAlpha: 0, // Make background fully transparent
                 transparent: true,
                 antialias: true,
-                resolution: window.devicePixelRatio || 1
+                // Use a fixed resolution rather than device pixel ratio for consistent appearance
+                resolution: Math.min(window.devicePixelRatio || 1, 2), // Cap at 2x to prevent performance issues
+                autoDensity: true
             });
             
             // Ensure the canvas is transparent
@@ -447,6 +465,8 @@
             starsApp.renderer.view.style.top = '0';
             starsApp.renderer.view.style.left = '0';
             starsApp.renderer.view.style.pointerEvents = 'none';
+            starsApp.renderer.view.style.width = '100%';
+            starsApp.renderer.view.style.height = '100%';
             
             // Add the Pixi canvas to the stars container
             document.getElementById('stars-container').appendChild(starsApp.view);
@@ -454,16 +474,44 @@
             // Create star field
             createStarField(starsApp);
             
-            // Handle window resize
+            // Handle window resize with debouncing
+            let resizeTimeout;
             window.addEventListener('resize', function() {
-                starsApp.renderer.resize(window.innerWidth, window.innerHeight);
+                // Clear any pending resize to prevent multiple calls
+                clearTimeout(resizeTimeout);
+                
+                // Debounce the resize to prevent performance issues
+                resizeTimeout = setTimeout(function() {
+                    // Update renderer dimensions
+                    starsApp.renderer.resize(window.innerWidth, window.innerHeight);
+                    
+                    // Recreate stars to prevent distortion
+                    starsApp.stage.removeChildren();
+                    
+                    // Reset stars array
+                    stars.length = 0;
+                    
+                    // Create new stars
+                    createStarField(starsApp);
+                }, 250);
             });
         });
         
+        // Global stars array
+        const stars = [];
+        
         function createStarField(app) {
-            // Star properties
-            const starCount = 200; // More stars for a richer effect
-            const stars = [];
+            // Adjust star count based on screen size for better performance on mobile
+            let starCount;
+            
+            if (window.innerWidth <= 768 || window.innerHeight <= 600) {
+                // Fewer stars for mobile/small screens
+                starCount = 120;
+            } else {
+                // More stars for desktop
+                starCount = 200;
+            }
+            
             const starColors = [0xFFFFFF, 0xF0F0FF, 0xFFFFE0, 0xF0F8FF]; // Different star colors
             
             // Create stars with different properties
@@ -471,7 +519,7 @@
                 createStar(app, stars, starColors);
             }
             
-            // Animation loop for twinkling
+            // Animation loop for twinkling - using a more efficient approach
             app.ticker.add(() => {
                 // Update each star's twinkling effect
                 for (let i = 0; i < stars.length; i++) {
@@ -480,17 +528,16 @@
                     // Update twinkling phase
                     star.twinklePhase += star.twinkleSpeed;
                     
-                    // Calculate new alpha based on sine wave
-                    const newAlpha = star.baseAlpha + Math.sin(star.twinklePhase) * star.twinkleAmount;
-                    star.sprite.alpha = newAlpha;
+                    // Calculate new alpha based on sine wave - more efficient calculation
+                    star.sprite.alpha = star.baseAlpha + Math.sin(star.twinklePhase) * star.twinkleAmount;
                     
-                    // Occasionally change twinkle speed for more natural effect
-                    if (Math.random() < 0.001) {
-                        star.twinkleSpeed = 0.02 + Math.random() * 0.05;
+                    // Lower frequency of random changes to improve performance
+                    if (Math.random() < 0.0005) {
+                        star.twinkleSpeed = 0.02 + Math.random() * 0.04;
                     }
                     
-                    // Very subtle size changes for some stars (mimics atmospheric distortion)
-                    if (Math.random() < 0.01) {
+                    // Very subtle size changes for only larger stars (limits performance impact)
+                    if (star.baseSize > 0.9 && Math.random() < 0.002) {
                         const sizeVariation = 0.95 + Math.random() * 0.1;
                         star.sprite.scale.set(star.baseSize * sizeVariation);
                     }
@@ -517,15 +564,24 @@
             star.x = Math.random() * app.screen.width;
             star.y = Math.random() * app.screen.height;
             
+            // Adjust star size based on screen dimensions
+            let maxBaseSize;
+            if (window.innerWidth <= 768 || window.innerHeight <= 600) {
+                // Smaller stars on mobile
+                maxBaseSize = 1.0;
+            } else {
+                maxBaseSize = 1.3;
+            }
+            
             // Random size (small, to stay subtle)
-            const baseSize = 0.2 + Math.random() * 1.3;
+            const baseSize = 0.2 + Math.random() * maxBaseSize;
             star.scale.set(baseSize);
             
-            // Add blur filter for glow effect on larger stars
-            if (baseSize > 0.8) {
+            // Add blur filter for glow effect only on larger stars and only on higher-end devices
+            if (baseSize > 0.8 && window.devicePixelRatio > 1) {
                 const blurFilter = new PIXI.filters.BlurFilter();
-                blurFilter.blur = 0.5 + baseSize;
-                blurFilter.quality = 3;
+                blurFilter.blur = Math.min(0.5 + baseSize, 1.5); // Cap blur amount
+                blurFilter.quality = 2; // Lower quality for better performance
                 star.filters = [blurFilter];
             }
             
@@ -537,8 +593,8 @@
                 sprite: star,
                 baseSize: baseSize,
                 baseAlpha: 0.4 + Math.random() * 0.6,
-                twinkleAmount: 0.1 + Math.random() * 0.3,
-                twinkleSpeed: 0.02 + Math.random() * 0.05,
+                twinkleAmount: 0.1 + Math.random() * 0.2, // Reduced twinkle amount for less distortion
+                twinkleSpeed: 0.02 + Math.random() * 0.04, // More consistent speeds
                 twinklePhase: Math.random() * Math.PI * 2 // Random starting phase
             });
             
