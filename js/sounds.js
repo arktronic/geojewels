@@ -7,11 +7,9 @@
 const Sounds = {
     // Sound effects
     sounds: {
-        move: null,
         rotate: null,
         match: null,
         place: null,
-        gameOver: null,
         bgMusic: null
     },
 
@@ -29,12 +27,6 @@ const Sounds = {
     initialize: function() {
         // Configure sounds with proper settings
         this.sounds = {
-            move: new Howl({ 
-                src: ['assets/audio/move.mp3'],
-                volume: 0.5,
-                preload: true,
-                onloaderror: () => console.log("Warning: move sound not found")
-            }),
             rotate: new Howl({ 
                 src: ['assets/audio/rotate.mp3'],
                 volume: 0.5,
@@ -52,12 +44,6 @@ const Sounds = {
                 volume: 0.5,
                 preload: true,
                 onloaderror: () => console.log("Warning: place sound not found")
-            }),
-            gameOver: new Howl({ 
-                src: ['assets/audio/gameover.mp3'],
-                volume: 0.8,
-                preload: true,
-                onloaderror: () => console.log("Warning: game over sound not found")
             }),
             bgMusic: new Howl({
                 src: ['assets/audio/bgmusic.mp3'],

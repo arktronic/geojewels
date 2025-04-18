@@ -190,7 +190,6 @@ const Game = {
     gameOver: function() {
         gameState.status = 'gameOver';
         Sounds.stop('bgMusic');
-        Sounds.play('gameOver');
         Game.showGameOverScreen();
     },
 

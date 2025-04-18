@@ -87,7 +87,6 @@ const Jewels = {
         
         // Move the column
         gameState.currentColumn.x = newX;
-        Sounds.play('move');
         Renderer.renderActiveColumn();
     },
 
