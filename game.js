@@ -99,6 +99,23 @@ const Game = {
         // Hide the start screen
         Game.hideStartScreen();
         
+        // Explicitly initialize audio (requires user interaction, which we now have)
+        if (typeof Howler !== 'undefined') {
+            // Force audio context to resume if it was suspended
+            if (Howler.ctx && Howler.ctx.state === 'suspended') {
+                Howler.ctx.resume();
+            }
+            
+            // Stop any sounds that might be silently playing
+            if (typeof Sounds !== 'undefined') {
+                Object.keys(Sounds.sounds).forEach(soundKey => {
+                    if (Sounds.sounds[soundKey]) {
+                        Sounds.sounds[soundKey].stop();
+                    }
+                });
+            }
+        }
+        
         // Start background music
         Sounds.play('bgMusic');
         

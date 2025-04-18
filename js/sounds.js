@@ -20,45 +20,51 @@ const Sounds = {
         musicEnabled: true,
         soundEffectsEnabled: true
     },
+    
+    // Audio system status
+    audioContext: null,
+    audioInitialized: false,
 
     // Initialize all sound effects
     initialize: function() {
+        // Configure sounds with proper settings
         this.sounds = {
             move: new Howl({ 
                 src: ['assets/audio/move.mp3'],
-                html5: true,
                 volume: 0.5,
+                preload: true,
                 onloaderror: () => console.log("Warning: move sound not found")
             }),
             rotate: new Howl({ 
                 src: ['assets/audio/rotate.mp3'],
-                html5: true,
                 volume: 0.5,
+                preload: true,
                 onloaderror: () => console.log("Warning: rotate sound not found")
             }),
             match: new Howl({ 
                 src: ['assets/audio/match.mp3'],
-                html5: true,
                 volume: 0.7,
+                preload: true,
                 onloaderror: () => console.log("Warning: match sound not found")
             }),
             place: new Howl({ 
                 src: ['assets/audio/place.mp3'],
-                html5: true,
                 volume: 0.5,
+                preload: true,
                 onloaderror: () => console.log("Warning: place sound not found")
             }),
             gameOver: new Howl({ 
                 src: ['assets/audio/gameover.mp3'],
-                html5: true,
                 volume: 0.8,
+                preload: true,
                 onloaderror: () => console.log("Warning: game over sound not found")
             }),
             bgMusic: new Howl({
                 src: ['assets/audio/bgmusic.mp3'],
                 loop: true,
                 volume: 0.3,
-                html5: true,
+                html5: true, // Keep music as HTML5 since it's long-playing
+                preload: true,
                 onloaderror: () => console.log("Warning: background music not found")
             })
         };
@@ -134,11 +140,17 @@ const Sounds = {
             } else {
                 // Only play sound effects if sound effects are enabled
                 if (this.settings.soundEffectsEnabled) {
+                    // On mobile devices, ensure clean playback by stopping previous instances
+                    if (this.isMobileDevice()) {
+                        this.sounds[soundName].stop();
+                    }
+                    
+                    // Play the sound effect
                     this.sounds[soundName].play();
                 }
             }
         } catch (e) {
-            console.log(`Error playing sound: ${soundName}`);
+            console.log(`Error playing sound: ${soundName}`, e);
         }
     },
 
@@ -149,7 +161,14 @@ const Sounds = {
                 this.sounds[soundName].stop();
             }
         } catch (e) {
-            console.log(`Error stopping sound: ${soundName}`);
+            console.log(`Error stopping sound: ${soundName}`, e);
         }
+    },
+    
+    // Feature detection for mobile device based on touch capabilities
+    isMobileDevice: function() {
+        return (('ontouchstart' in window) || 
+                (navigator.maxTouchPoints > 0) || 
+                (navigator.msMaxTouchPoints > 0));
     }
 };
