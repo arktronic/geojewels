@@ -10,8 +10,14 @@ const Sounds = {
         rotate: null,
         match: null,
         place: null,
-        levelUp: null,
-        bgMusic: null
+        levelUp: null
+    },
+    
+    // Background music tracks
+    bgMusic: {
+        tracks: [],
+        currentTrackIndex: 0,
+        isPlaying: false
     },
 
     // Audio settings
@@ -30,7 +36,7 @@ const Sounds = {
         this.sounds = {
             rotate: new Howl({ 
                 src: ['assets/audio/rotate.mp3'],
-                volume: 0.5,
+                volume: 0.3,
                 preload: true,
                 onloaderror: () => console.log("Warning: rotate sound not found")
             }),
@@ -51,22 +57,77 @@ const Sounds = {
                 volume: 0.6,
                 preload: true,
                 onloaderror: () => console.log("Warning: level up sound not found")
-            }),
-            bgMusic: new Howl({
-                src: ['assets/audio/bgmusic.mp3'],
-                loop: true,
-                volume: 0.3,
-                html5: true, // Keep music as HTML5 since it's long-playing
-                preload: true,
-                onloaderror: () => console.log("Warning: background music not found")
             })
         };
+        
+        // Initialize background music tracks
+        this.initializeBgMusic();
         
         // Load saved settings from local storage if available
         this.loadSettings();
         
         // Initialize checkbox states
         this.initializeUIElements();
+    },
+    
+    // Initialize background music tracks
+    initializeBgMusic: function() {
+        // Create all 7 background music tracks
+        for (let i = 1; i <= 7; i++) {
+            const track = new Howl({
+                src: [`assets/audio/bgmusic${i}.mp3`],
+                volume: 0.3,
+                html5: true, // Keep music as HTML5 since it's long-playing
+                preload: true,
+                onend: () => {
+                    // When track ends, play the next one
+                    this.playNextTrack();
+                },
+                onloaderror: () => console.log(`Warning: background music track ${i} not found`)
+            });
+            this.bgMusic.tracks.push(track);
+        }
+    },
+    
+    // Play the current background music track
+    playBgMusic: function() {
+        if (!this.settings.musicEnabled || this.bgMusic.isPlaying) return;
+        
+        const currentTrack = this.bgMusic.tracks[this.bgMusic.currentTrackIndex];
+        if (currentTrack) {
+            this.bgMusic.isPlaying = true;
+            currentTrack.play();
+        }
+    },
+    
+    // Play the next track in the sequence
+    playNextTrack: function() {
+        // Stop the current track if it's still playing
+        const currentTrack = this.bgMusic.tracks[this.bgMusic.currentTrackIndex];
+        if (currentTrack && currentTrack.playing()) {
+            currentTrack.stop();
+        }
+        
+        // Move to the next track (with wraparound to the beginning)
+        this.bgMusic.currentTrackIndex = (this.bgMusic.currentTrackIndex + 1) % this.bgMusic.tracks.length;
+        
+        // Only start the next track if music is enabled and we were playing
+        if (this.settings.musicEnabled && this.bgMusic.isPlaying) {
+            const nextTrack = this.bgMusic.tracks[this.bgMusic.currentTrackIndex];
+            if (nextTrack) {
+                nextTrack.play();
+            }
+        }
+    },
+    
+    // Stop all background music
+    stopBgMusic: function() {
+        // Stop the current track
+        const currentTrack = this.bgMusic.tracks[this.bgMusic.currentTrackIndex];
+        if (currentTrack) {
+            currentTrack.stop();
+        }
+        this.bgMusic.isPlaying = false;
     },
     
     // Initialize UI elements based on settings
@@ -121,26 +182,24 @@ const Sounds = {
     // Helper function to safely play sounds
     play: function(soundName) {
         try {
+            // Handle special case for background music
+            if (soundName === 'bgMusic') {
+                this.playBgMusic();
+                return;
+            }
+            
             // Only play if the sound exists
             if (!this.sounds[soundName]) return;
             
-            // Check if this is background music or a sound effect
-            if (soundName === 'bgMusic') {
-                // Only play music if music is enabled
-                if (this.settings.musicEnabled) {
-                    this.sounds[soundName].play();
+            // Only play sound effects if sound effects are enabled
+            if (this.settings.soundEffectsEnabled) {
+                // On mobile devices, ensure clean playback by stopping previous instances
+                if (this.isMobileDevice()) {
+                    this.sounds[soundName].stop();
                 }
-            } else {
-                // Only play sound effects if sound effects are enabled
-                if (this.settings.soundEffectsEnabled) {
-                    // On mobile devices, ensure clean playback by stopping previous instances
-                    if (this.isMobileDevice()) {
-                        this.sounds[soundName].stop();
-                    }
-                    
-                    // Play the sound effect
-                    this.sounds[soundName].play();
-                }
+                
+                // Play the sound effect
+                this.sounds[soundName].play();
             }
         } catch (e) {
             console.log(`Error playing sound: ${soundName}`, e);
@@ -150,6 +209,11 @@ const Sounds = {
     // Stop a specific sound
     stop: function(soundName) {
         try {
+            if (soundName === 'bgMusic') {
+                this.stopBgMusic();
+                return;
+            }
+            
             if (this.sounds[soundName]) {
                 this.sounds[soundName].stop();
             }

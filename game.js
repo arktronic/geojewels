@@ -237,7 +237,6 @@ const Game = {
     // Game over handling
     gameOver: function() {
         gameState.status = 'gameOver';
-        Sounds.stop('bgMusic');
         Game.showGameOverScreen();
     },
 
@@ -354,9 +353,8 @@ const Game = {
         Game.updateLevelDisplay();
         Game.hideGameOverScreen();
         
-        // Restart music
-        Sounds.stop('bgMusic');
-        Sounds.play('bgMusic');
+        // We no longer restart the music, allowing it to continue playing
+        // through the rotation of tracks
     },
 
     // Main game loop
