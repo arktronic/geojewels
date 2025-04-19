@@ -11,13 +11,13 @@
             margin: 0;
             padding: 0;
             background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             font-family: Arial, sans-serif;
             overflow: hidden;
             position: relative;
+            width: 100vw;
+            height: 100vh;
+            /* Fix for iOS Safari overscroll effect */
+            position: fixed;
         }
         
         .bg-container {
@@ -37,7 +37,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.3; /* Adjust opacity of the background */
+            opacity: 0.3;
         }
         
         #stars-container {
@@ -49,17 +49,52 @@
             z-index: 1;
         }
         
+        /* Game wrapper with explicit play and controls areas */
+        .game-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            z-index: 5;
+        }
+        
+        /* Game area takes all available space minus control area */
+        .game-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            width: 100%;
+            /* Reserve space for control area */
+            height: calc(100vh - 100px);
+        }
+        
+        /* Fixed size control area */
+        .button-area {
+            flex: 0 0 auto;
+            height: 100px; /* Fixed height for controls area */
+            width: 100%;
+            position: relative;
+            z-index: 15;
+        }
+        
+        /* Game container with aspect ratio preserved */
         #game-container {
             position: relative;
-            z-index: 5; /* Ensure game is above background */
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); /* Subtle neutral glow */
-            border-radius: 8px; /* Slightly rounded corners */
-            overflow: hidden; /* Keep the rounded corners intact */
-            background-color: rgba(20, 20, 25, 0.4); /* More neutral dark background */
-            backdrop-filter: blur(2px); /* Subtle blur effect for depth */
-            min-height: 200px; /* Ensure minimum height */
-            max-height: 95vh; /* Prevent extending beyond viewport */
-            transition: none !important; /* Disable any transitions */
+            z-index: 5;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: rgba(20, 20, 25, 0.4);
+            /* Use aspect ratio and max dimensions */
+            aspect-ratio: 10/16;
+            max-height: calc(100vh - 110px); /* Account for control area + margin */
+            /* Ensure width respects the aspect ratio */
+            max-width: min(90vw, calc((100vh - 110px) * 10/16));
         }
         
         #ui-overlay {
@@ -73,7 +108,7 @@
             color: white;
             font-size: 24px;
             font-weight: bold;
-            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8); /* Text shadow for better readability */
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
         }
         
         #score-display {
@@ -107,7 +142,7 @@
             color: white;
             font-size: 48px;
             margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(100, 200, 255, 0.8); /* Blue-ish glow on game over text */
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.8);
         }
         
         #restart-button {
@@ -118,7 +153,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.6); /* Glow effect on button */
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
             transition: all 0.3s ease;
         }
         
@@ -257,54 +292,24 @@
             transform: rotate(45deg);
         }
         
-        /* Mobile Control Styles */
+        /* Mobile controls - ensure no overlap with game area */
         #mobile-controls {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            display: none; /* Hidden by default, will be shown on mobile devices via JS */
+            height: 90px; /* Fixed height for mobile controls */
+            display: none; /* Hidden by default */
             justify-content: space-around;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px 0;
-            z-index: 15;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for visual separation */
-        }
-        
-        /* Mobile wrapper styles - container for responsive design */
-        .mobile-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            pointer-events: none; /* Let clicks pass through to elements below */
-            z-index: 5; /* Ensure it's above background but below controls */
-        }
-        
-        /* Add subtle gradient transition between game and controls on mobile */
-        @media (max-width: 768px) {
-            .mobile-wrapper::after {
-                content: '';
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                height: 30px; /* Matches our buffer zone height in JS */
-                background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.3));
-                pointer-events: none;
-                z-index: 6;
-            }
-            
-            #mobile-controls {
-                box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-            }
+            background-color: rgba(0, 0, 0, 0.7); /* Darker background for better visibility */
+            padding: 10px 0;
+            z-index: 20; /* Ensure higher z-index than game area */
+            backdrop-filter: blur(5px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+            /* iOS Safari bottom spacing fix */
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
         
         .control-button {
@@ -322,6 +327,7 @@
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
             position: relative;
             margin: 0 10px;
         }
@@ -340,28 +346,57 @@
             fill: white;
         }
         
-        /* Media query for mobile devices */
+        /* Mobile styles - ensure clear separation between game and controls */
         @media (max-width: 768px) {
+            /* Set fixed height for button area on mobile */
+            .button-area {
+                height: 90px; /* Fixed button area height */
+            }
+            
+            /* Explicitly constrain game container size to ensure no overlap */
             #game-container {
-                width: 100% !important;
-                height: auto !important; /* Let JavaScript control the height */
-                max-height: 90vh; /* Limit maximum height */
-                position: relative;
-                margin-bottom: 0 !important; /* Remove margin */
+                max-height: calc(100vh - 100px); /* Subtract button area height plus padding */
+                max-width: min(90vw, calc((100vh - 100px) * 10/16)); /* Maintain aspect ratio */
+            }
+            
+            /* Explicitly set game-area height to prevent overflow */
+            .game-area {
+                max-height: calc(100vh - 100px);
+                padding-bottom: 10px; /* Extra padding for safety */
+            }
+            
+            /* Show mobile controls */
+            #mobile-controls {
+                display: flex;
+            }
+            
+            /* Remove colorful gradient separator and use a subtle line instead */
+            #mobile-controls::before {
+                content: '';
+                position: absolute;
+                top: -1px;
+                left: 0;
+                width: 100%;
+                height: 1px;
+                background: rgba(255, 255, 255, 0.2); /* Subtle light line */
+                z-index: 25;
+            }
+            
+            /* Adjust UI text sizes */
+            #score-display, #level-display {
+                font-size: 18px;
+                top: 10px;
             }
             
             #score-display {
-                font-size: 18px;
-                top: 10px;
                 left: 10px;
             }
             
             #level-display {
-                font-size: 18px;
-                top: 10px;
                 right: 10px;
             }
             
+            /* Adjust message text sizes */
             #start-screen h1, #game-over h1 {
                 font-size: 36px;
             }
@@ -370,19 +405,52 @@
                 font-size: 22px;
                 padding: 12px 24px;
             }
+            
+            .audio-option {
+                font-size: 18px;
+            }
         }
         
-        /* Media query for desktop at lower resolutions - scales the game but doesn't show mobile controls */
-        @media (max-width: 768px) and (min-device-width: 769px) {
-            #game-container {
-                width: 100% !important;
-                height: 100vh !important; /* Use full height since we don't have on-screen controls */
-                margin-bottom: 0;
+        /* Landscape orientation adjustments */
+        @media (max-width: 768px) and (orientation: landscape) {
+            /* Reduce height of button area in landscape */
+            .button-area {
+                height: 80px;
             }
             
-            /* Hide mobile controls for desktop at lower resolutions */
+            /* Reduce size of mobile controls in landscape */
+            #mobile-controls {
+                height: 80px;
+            }
+            
+            /* Constrain game width in landscape to prevent excessive width */
+            #game-container {
+                max-height: 70vh;
+                max-width: 42vw; /* Narrower in landscape */
+            }
+            
+            /* Smaller control buttons in landscape */
+            .control-button {
+                width: 50px;
+                height: 50px;
+            }
+        }
+        
+        /* Desktop at lower resolutions */
+        @media (max-width: 768px) and (min-device-width: 769px) {
+            /* Reset button area height for desktop */
+            .button-area {
+                height: 0;
+            }
+            
+            /* Hide mobile controls on desktop */
             #mobile-controls {
                 display: none !important;
+            }
+            
+            /* Full game container on desktop */
+            #game-container {
+                max-height: 90vh;
             }
         }
     </style>
@@ -394,62 +462,65 @@
         <div id="stars-container"></div>
     </div>
     
-    <!-- Mobile wrapper for better responsive layout -->
-    <div class="mobile-wrapper">
-        <div id="game-container">
-            <!-- Game canvas will be added here by Pixi.js -->
-            <div id="ui-overlay">
-                <div id="score-display">Score: 0</div>
-                <div id="level-display">Level: 1</div>
-            </div>
-            <div id="game-over">
-                <h1>Game Over</h1>
-                <button id="restart-button">Play Again</button>
-            </div>
-            <div id="start-screen">
-                <h1>GeoJewels</h1>
-                <button id="begin-button">Begin Game</button>
-                <div id="audio-options">
-                    <div class="audio-option">
-                        <label for="music-toggle">
-                            <input type="checkbox" id="music-toggle" checked>
-                            <span class="checkmark"></span>
-                            Music
-                        </label>
-                    </div>
-                    <div class="audio-option">
-                        <label for="sound-effects-toggle">
-                            <input type="checkbox" id="sound-effects-toggle" checked>
-                            <span class="checkmark"></span>
-                            Sound Effects
-                        </label>
+    <!-- Page layout for game and controls -->
+    <div class="game-wrapper">
+        <div class="game-area">
+            <div id="game-container">
+                <!-- Game canvas will be added here by Pixi.js -->
+                <div id="ui-overlay">
+                    <div id="score-display">Score: 0</div>
+                    <div id="level-display">Level: 1</div>
+                </div>
+                <div id="game-over">
+                    <h1>Game Over</h1>
+                    <button id="restart-button">Play Again</button>
+                </div>
+                <div id="start-screen">
+                    <h1>GeoJewels</h1>
+                    <button id="begin-button">Begin Game</button>
+                    <div id="audio-options">
+                        <div class="audio-option">
+                            <label for="music-toggle">
+                                <input type="checkbox" id="music-toggle" checked>
+                                <span class="checkmark"></span>
+                                Music
+                            </label>
+                        </div>
+                        <div class="audio-option">
+                            <label for="sound-effects-toggle">
+                                <input type="checkbox" id="sound-effects-toggle" checked>
+                                <span class="checkmark"></span>
+                                Sound Effects
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Mobile controls -->
-    <div id="mobile-controls">
-        <div class="control-button" id="mobile-left">
-            <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="white" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
-            </svg>
-        </div>
-        <div class="control-button" id="mobile-right">
-            <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="white" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-            </svg>
-        </div>
-        <div class="control-button" id="mobile-down">
-            <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="white" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-            </svg>
-        </div>
-        <div class="control-button" id="mobile-rotate">
-            <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="white" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-            </svg>
+        <div class="button-area">
+            <!-- Mobile controls -->
+            <div id="mobile-controls">
+                <div class="control-button" id="mobile-left">
+                    <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path fill="white" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div class="control-button" id="mobile-right">
+                    <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path fill="white" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div class="control-button" id="mobile-down">
+                    <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path fill="white" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div class="control-button" id="mobile-rotate">
+                    <svg class="control-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path fill="white" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -77,28 +77,47 @@ const Game = {
     
     // Add layout optimizations for mobile that work across all browsers
     addMobileOptimizations: function() {
-        // Listen for orientation changes which can affect layout
-        window.addEventListener('orientationchange', () => {
-            // Recalculate layout after orientation change with a small delay
-            setTimeout(() => {
-                if (typeof Input !== 'undefined' && Input.handleOrientation) {
-                    Input.handleOrientation();
-                }
-                if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
-                    Renderer.resizeCanvas();
-                }
-            }, 300);
-        });
-        
-        // Force an immediate layout calculation
-        setTimeout(() => {
-            if (typeof Input !== 'undefined' && Input.handleOrientation) {
-                Input.handleOrientation();
-            }
+        // Create a single comprehensive layout update function
+        const updateLayout = () => {
+            // Always refresh the canvas size - critical for growing from small to large
             if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
                 Renderer.resizeCanvas();
             }
-        }, 100);
+            
+            // Update mobile controls visibility based on device type
+            if (typeof Input !== 'undefined' && Input.handleOrientation) {
+                Input.handleOrientation();
+            }
+        };
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            // Perform immediate update
+            updateLayout();
+            
+            // Then schedule another update after orientation change completes
+            setTimeout(updateLayout, 250);
+        });
+        
+        // Handle regular window resize events
+        window.addEventListener('resize', () => {
+            // Clear any existing timeout to avoid multiple handlers
+            if (this.resizeTimeout) {
+                clearTimeout(this.resizeTimeout);
+            }
+            
+            // Perform immediate resize to handle growing from small to large
+            updateLayout();
+            
+            // Schedule a follow-up resize to catch any layout adjustments
+            this.resizeTimeout = setTimeout(updateLayout, 100);
+        });
+        
+        // Set up initial layout
+        updateLayout();
+        
+        // Ensure proper layout with a second pass
+        setTimeout(updateLayout, 300);
     },
 
     // Clean up resources to prevent memory leaks

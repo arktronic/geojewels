@@ -163,75 +163,90 @@ const Input = {
         }
     },
     
-    // Detect if the user is on a mobile device
+    // Detect if the user is on a mobile device and set up controls accordingly
     detectMobileDevice: function() {
         // Check for actual mobile device using user agent
         const isTouchDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Check for small screen size
-        const isSmallScreen = window.innerWidth <= 768;
+        // Get control elements
+        const mobileControls = document.getElementById('mobile-controls');
         
-        // Controls should only be shown for actual mobile devices, not just small desktop windows
         if (isTouchDevice) {
-            const gameContainer = document.getElementById('game-container');
+            // Set up mobile device with controls
+            this.isMobileDevice = true;
             
-            // Set mobile controls to display flex
-            document.getElementById('mobile-controls').style.display = 'flex';
+            // Show controls - they'll automatically go in the reserved 100px space
+            mobileControls.style.display = 'flex';
             
-            // Additional adjustments based on screen orientation
+            // Force immediate layout update
             this.handleOrientation();
             
-            // Listen for orientation changes
-            window.addEventListener('resize', () => this.handleOrientation());
-        } else if (isSmallScreen) {
-            // For desktop at lower resolutions, just handle the scaling
-            this.handleLowResolutionDesktop();
+            // Listen for orientation changes specifically
+            window.addEventListener('orientationchange', () => {
+                // Need slight delay after orientation change to get accurate dimensions
+                setTimeout(() => {
+                    this.handleOrientation();
+                }, 250);
+            });
+        } else {
+            // Desktop mode - no controls needed
+            this.isMobileDevice = false;
+            mobileControls.style.display = 'none';
             
-            // Listen for resize events on desktop
-            window.addEventListener('resize', () => this.handleLowResolutionDesktop());
-        }
-    },
-    
-    // Handle desktop at lower resolutions
-    handleLowResolutionDesktop: function() {
-        const gameContainer = document.getElementById('game-container');
-        
-        // Make sure the mobile controls are hidden on desktop
-        document.getElementById('mobile-controls').style.display = 'none';
-        
-        // Force game renderer to resize
-        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
-            Renderer.resizeCanvas();
+            // Force layout update for desktop
+            this.handleDesktopLayout();
         }
     },
     
     // Handle screen orientation changes
     handleOrientation: function() {
-        const gameContainer = document.getElementById('game-container');
+        if (!this.isMobileDevice) return;
+        
+        const isLandscape = window.innerWidth > window.innerHeight;
         const mobileControls = document.getElementById('mobile-controls');
-        const mobileWrapper = document.querySelector('.mobile-wrapper');
+        const buttonArea = document.querySelector('.button-area');
         
-        // Calculate available height with additional buffer for virtual buttons
-        const controlsHeight = mobileControls.offsetHeight;
-        const standardBufferZone = 30; // Reduced buffer zone for cleaner look
+        // Adjust control sizes based on orientation
+        if (isLandscape) {
+            // Landscape mode - smaller controls
+            if (mobileControls) mobileControls.style.height = '80px';
+            if (buttonArea) buttonArea.style.height = '80px';
+            
+            // Make control buttons smaller in landscape
+            document.querySelectorAll('.control-button').forEach(button => {
+                button.style.width = '50px';
+                button.style.height = '50px';
+            });
+        } else {
+            // Portrait mode - standard controls
+            if (mobileControls) mobileControls.style.height = '90px';
+            if (buttonArea) buttonArea.style.height = '100px';
+            
+            // Reset control buttons to normal size in portrait
+            document.querySelectorAll('.control-button').forEach(button => {
+                button.style.width = '60px';
+                button.style.height = '60px';
+            });
+        }
         
-        // Calculate available game area height
-        const availableHeight = window.innerHeight - controlsHeight - standardBufferZone;
+        // Force canvas resize after layout changes
+        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
+            Renderer.resizeCanvas();
+        }
+    },
+    
+    // Handle desktop layout
+    handleDesktopLayout: function() {
+        const buttonArea = document.querySelector('.button-area');
+        const gameArea = document.querySelector('.game-area');
         
-        // Update game container size
-        gameContainer.style.height = `${availableHeight}px`;
+        // Remove button area height on desktop
+        if (buttonArea) buttonArea.style.height = '0';
         
-        // Enable pointer events on mobile controls
-        mobileControls.style.pointerEvents = 'auto';
+        // Give game area full height on desktop
+        if (gameArea) gameArea.style.height = '100vh';
         
-        // Update wrapper height to make sure it covers the entire viewport
-        mobileWrapper.style.pointerEvents = 'none';
-        
-        // Position the game container with appropriate space from the bottom
-        // This creates a natural gap without adding any additional elements
-        mobileWrapper.style.paddingBottom = `${controlsHeight + standardBufferZone}px`;
-        
-        // Force game renderer to resize
+        // Force canvas resize for desktop layout
         if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
             Renderer.resizeCanvas();
         }

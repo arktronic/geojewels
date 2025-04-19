@@ -70,48 +70,38 @@ const Renderer = {
         if (!this.app) return;
         
         const gameContainer = document.getElementById('game-container');
+        if (!gameContainer) return;
         
         // Get available dimensions
-        const containerWidth = gameContainer.clientWidth || window.innerWidth;
-        const containerHeight = gameContainer.clientHeight || window.innerHeight;
+        const containerWidth = gameContainer.clientWidth;
+        const containerHeight = gameContainer.clientHeight;
         
-        // Simply resize the existing renderer - don't recreate the canvas
+        if (containerWidth <= 0 || containerHeight <= 0) return;
+        
+        // Always perform resize operation - important when going from small to large
         this.app.renderer.resize(containerWidth, containerHeight);
         
         // Calculate the appropriate scale factor to fit the game board
-        const scaleX = containerWidth / this.originalWidth;
-        const scaleY = containerHeight / this.originalHeight;
+        const boardWidth = this.originalWidth;
+        const boardHeight = this.originalHeight;
         
-        // Choose the smaller scale to ensure the board fits completely
-        let scale;
+        // Calculate scale to fit the board within the container while maintaining aspect ratio
+        const scaleX = containerWidth / boardWidth;
+        const scaleY = containerHeight / boardHeight;
+        const scale = Math.min(scaleX, scaleY);
         
-        // For larger screens, we can scale up to a reasonable size
-        if (Math.min(scaleX, scaleY) > 1) {
-            scale = Math.min(Math.min(scaleX, scaleY), 1.5);
-        } else {
-            // For smaller screens, ensure everything fits with a consistent scale factor
-            scale = Math.min(scaleX, scaleY) * 0.88; // Slight reduction for all mobile devices
-        }
+        // Ensure scale is never too small
+        const safeScale = Math.max(scale, 0.1);
         
-        // Apply scale immediately
-        this.boardContainer.scale.x = scale;
-        this.boardContainer.scale.y = scale;
+        // Apply scale to board container
+        this.boardContainer.scale.set(safeScale);
         
         // Center the board in the available space
-        // Add a small upward offset on mobile to prevent virtual button overlaps
-        const isMobile = window.innerWidth <= 768;
-        const verticalOffset = isMobile ? -15 : 0; // Move up by 15px on mobile devices
+        this.boardContainer.x = (containerWidth - (boardWidth * safeScale)) / 2;
+        this.boardContainer.y = (containerHeight - (boardHeight * safeScale)) / 2;
         
-        this.boardContainer.x = Math.max(0, (containerWidth - (this.originalWidth * scale)) / 2);
-        this.boardContainer.y = Math.max(0, (containerHeight - (this.originalHeight * scale)) / 2) + verticalOffset;
-        
-        // Force the stage to update
-        this.app.stage.calculateBounds();
-        
-        // Ensure update happens immediately
-        if (this.app.ticker && !this.app.ticker.started) {
-            this.app.render();
-        }
+        // Force immediate render to update the display
+        this.app.render();
     },
 
     // Draw the grid lines
