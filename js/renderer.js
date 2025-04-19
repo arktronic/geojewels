@@ -72,25 +72,26 @@ const Renderer = {
         const gameContainer = document.getElementById('game-container');
         if (!gameContainer) return;
         
-        // Get available dimensions
-        const containerWidth = gameContainer.clientWidth;
-        const containerHeight = gameContainer.clientHeight;
+        // Get accurate container dimensions using getBoundingClientRect
+        const containerRect = gameContainer.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
         
         if (containerWidth <= 0 || containerHeight <= 0) return;
         
-        // Always perform resize operation - important when going from small to large
+        // Resize the renderer to match container size
         this.app.renderer.resize(containerWidth, containerHeight);
         
-        // Calculate the appropriate scale factor to fit the game board
+        // Original board dimensions
         const boardWidth = this.originalWidth;
         const boardHeight = this.originalHeight;
         
-        // Calculate scale to fit the board within the container while maintaining aspect ratio
+        // Calculate scale to fit the board while maintaining aspect ratio
         const scaleX = containerWidth / boardWidth;
         const scaleY = containerHeight / boardHeight;
         const scale = Math.min(scaleX, scaleY);
         
-        // Ensure scale is never too small
+        // Ensure scale is never too small (minimum 10%)
         const safeScale = Math.max(scale, 0.1);
         
         // Apply scale to board container

@@ -75,49 +75,68 @@ const Game = {
         Game.addMobileOptimizations();
     },
     
-    // Add layout optimizations for mobile that work across all browsers
+    // Add layout optimizations for mobile devices that work across all browsers
     addMobileOptimizations: function() {
-        // Create a single comprehensive layout update function
+        // Use a simpler, more reliable approach to layout updates
         const updateLayout = () => {
-            // Always refresh the canvas size - critical for growing from small to large
+            // Always get actual device dimensions
+            const gameContainer = document.getElementById('game-container');
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Handle different device capabilities
+            const isTouchDevice = (('ontouchstart' in window) || 
+                                  (navigator.maxTouchPoints > 0) || 
+                                  (navigator.msMaxTouchPoints > 0));
+            
+            // Disable all browser scroll/zoom behaviors on game container
+            if (isTouchDevice) {
+                document.body.style.overflow = 'hidden';
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+                document.body.style.height = '100%';
+                
+                // Ensure proper viewport settings for mobile
+                const viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                    viewport.setAttribute('content', 
+                        'width=device-width, initial-scale=1.0, maximum-scale=1.0, ' + 
+                        'user-scalable=no, viewport-fit=cover');
+                }
+            }
+            
+            // Update the game canvas size
             if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
                 Renderer.resizeCanvas();
             }
             
-            // Update mobile controls visibility based on device type
-            if (typeof Input !== 'undefined' && Input.handleOrientation) {
-                Input.handleOrientation();
+            // Update mobile controls if present
+            if (typeof Input !== 'undefined' && Input.handleResize) {
+                Input.handleResize();
             }
         };
 
+        // Handle initial layout setup
+        updateLayout();
+        
         // Handle orientation changes
         window.addEventListener('orientationchange', () => {
-            // Perform immediate update
-            updateLayout();
-            
-            // Then schedule another update after orientation change completes
+            // Update layout when orientation changes
             setTimeout(updateLayout, 250);
         });
         
         // Handle regular window resize events
         window.addEventListener('resize', () => {
-            // Clear any existing timeout to avoid multiple handlers
-            if (this.resizeTimeout) {
-                clearTimeout(this.resizeTimeout);
-            }
-            
-            // Perform immediate resize to handle growing from small to large
             updateLayout();
-            
-            // Schedule a follow-up resize to catch any layout adjustments
-            this.resizeTimeout = setTimeout(updateLayout, 100);
         });
         
-        // Set up initial layout
-        updateLayout();
-        
-        // Ensure proper layout with a second pass
-        setTimeout(updateLayout, 300);
+        // Force layout update after page is fully loaded
+        window.addEventListener('load', () => {
+            updateLayout();
+            
+            // Secondary layout update after a short delay 
+            setTimeout(updateLayout, 300);
+        });
     },
 
     // Clean up resources to prevent memory leaks

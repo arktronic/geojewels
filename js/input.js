@@ -5,6 +5,22 @@
 
 // Input namespace
 const Input = {
+    // Flag to track if mobile controls are active
+    isMobileControlsActive: false,
+    
+    // Layout configuration
+    layoutConfig: {
+        controlsHeight: {
+            portrait: 90,
+            landscape: 70
+        },
+        buttonSize: {
+            portrait: 60,
+            landscape: 50  
+        },
+        minButtonSpacing: 10
+    },
+    
     // Set up keyboard input handlers
     setupHandlers: function() {
         // Begin game button
@@ -39,222 +55,217 @@ const Input = {
         // Restart button
         document.getElementById('restart-button').addEventListener('click', () => Game.restartGame());
         
-        // Mobile control handlers
-        this.setupMobileControls();
+        // Set up all touch controls and layout
+        this.setupTouchControls();
         
-        // Detect mobile devices and handle responsive layout
-        this.detectMobileDevice();
+        // Add resize handler to update layout
+        window.addEventListener('resize', this.handleResize.bind(this));
         
-        // Prevent unintended browser behaviors on mobile
+        // Initial layout adjustment
+        this.handleResize();
+    },
+    
+    // Set up touch controls for devices that support them
+    setupTouchControls: function() {
+        // Check if touch is supported using feature detection
+        this.isMobileControlsActive = this.isTouchSupported();
+        
+        // If touch isn't supported, don't set up mobile controls
+        if (!this.isMobileControlsActive) {
+            document.getElementById('mobile-controls').style.display = 'none';
+            return;
+        }
+        
+        // Get control elements
+        const leftButton = document.getElementById('mobile-left');
+        const rightButton = document.getElementById('mobile-right');
+        const rotateButton = document.getElementById('mobile-rotate');
+        const downButton = document.getElementById('mobile-down');
+        
+        // Left button - move column left
+        this.setupTouchButton(leftButton, 
+            () => Jewels.moveColumn(-1), 
+            null,
+            'Control button: move left');
+        
+        // Right button - move column right
+        this.setupTouchButton(rightButton, 
+            () => Jewels.moveColumn(1), 
+            null,
+            'Control button: move right');
+        
+        // Rotate button - rotate column
+        this.setupTouchButton(rotateButton, 
+            () => Jewels.rotateColumn(), 
+            null,
+            'Control button: rotate');
+        
+        // Down button - toggle fast fall
+        this.setupTouchButton(downButton, 
+            () => Jewels.setFastFall(true),  // touchstart
+            () => Jewels.setFastFall(false), // touchend/cancel
+            'Control button: fast fall');
+
+        // Show controls
+        document.getElementById('mobile-controls').style.display = 'flex';
+        
+        // Prevent default behaviors
         this.preventDefaultBehaviors();
     },
     
-    // Set up touch controls for mobile
-    setupMobileControls: function() {
-        // Left button
-        const leftButton = document.getElementById('mobile-left');
-        leftButton.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent default to avoid double actions
-            if (gameState.status === 'playing') {
-                Jewels.moveColumn(-1);
-            }
-        });
+    // Helper to set up a touch button with proper event handling
+    setupTouchButton: function(button, startAction, endAction, ariaLabel) {
+        if (!button) return;
         
-        // Right button
-        const rightButton = document.getElementById('mobile-right');
-        rightButton.addEventListener('touchstart', (e) => {
+        // Add accessibility label
+        if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+        
+        // Add touch events
+        button.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.moveColumn(1);
+            if (gameState.status === 'playing' && startAction) {
+                startAction();
             }
         });
         
-        // Rotate button
-        const rotateButton = document.getElementById('mobile-rotate');
-        rotateButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.rotateColumn();
-            }
-        });
-        
-        // Fast fall button - improve handling for this specific button
-        const downButton = document.getElementById('mobile-down');
-        
-        // On touchstart, enable fast fall
-        downButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(true);
-            }
-        });
-        
-        // On touchend, disable fast fall
-        downButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(false);
-            }
-        });
-        
-        // Also handle touchcancel (occurs when touch is interrupted)
-        downButton.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(false);
-            }
-        });
-        
-        // Handle touchleave as well (for completeness)
-        downButton.addEventListener('touchleave', (e) => {
-            e.preventDefault();
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(false);
-            }
-        });
-        
-        // Add mouse events as fallback for testing on desktop
-        leftButton.addEventListener('mousedown', () => {
-            if (gameState.status === 'playing') {
-                Jewels.moveColumn(-1);
-            }
-        });
-        
-        rightButton.addEventListener('mousedown', () => {
-            if (gameState.status === 'playing') {
-                Jewels.moveColumn(1);
-            }
-        });
-        
-        rotateButton.addEventListener('mousedown', () => {
-            if (gameState.status === 'playing') {
-                Jewels.rotateColumn();
-            }
-        });
-        
-        downButton.addEventListener('mousedown', () => {
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(true);
-            }
-        });
-        
-        downButton.addEventListener('mouseup', () => {
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(false);
-            }
-        });
-        
-        downButton.addEventListener('mouseleave', () => {
-            if (gameState.status === 'playing') {
-                Jewels.setFastFall(false);
-            }
-        });
-    },
-    
-    // Clean up event handlers
-    cleanup: function() {
-        if (this.eventHandlers) {
-            this.eventHandlers.forEach(({ element, events }) => {
-                events.forEach(({ type, handler }) => {
-                    element.removeEventListener(type, handler);
-                });
+        // Only add touch end events if we have an end action
+        if (endAction) {
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (gameState.status === 'playing') {
+                    endAction();
+                }
             });
-            this.eventHandlers = [];
+            
+            button.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                if (gameState.status === 'playing') {
+                    endAction();
+                }
+            });
+            
+            button.addEventListener('touchleave', (e) => {
+                e.preventDefault();
+                if (gameState.status === 'playing') {
+                    endAction();
+                }
+            });
+        }
+        
+        // Also add mouse events for desktop testing
+        button.addEventListener('mousedown', () => {
+            if (gameState.status === 'playing' && startAction) {
+                startAction();
+            }
+        });
+        
+        if (endAction) {
+            button.addEventListener('mouseup', () => {
+                if (gameState.status === 'playing') {
+                    endAction();
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                if (gameState.status === 'playing') {
+                    endAction();
+                }
+            });
         }
     },
     
-    // Detect if the user is on a mobile device and set up controls accordingly
-    detectMobileDevice: function() {
-        // Check for actual mobile device using user agent
-        const isTouchDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Get control elements
-        const mobileControls = document.getElementById('mobile-controls');
-        
-        if (isTouchDevice) {
-            // Set up mobile device with controls
-            this.isMobileDevice = true;
-            
-            // Show controls - they'll automatically go in the reserved 100px space
-            mobileControls.style.display = 'flex';
-            
-            // Force immediate layout update
-            this.handleOrientation();
-            
-            // Listen for orientation changes specifically
-            window.addEventListener('orientationchange', () => {
-                // Need slight delay after orientation change to get accurate dimensions
-                setTimeout(() => {
-                    this.handleOrientation();
-                }, 250);
-            });
-        } else {
-            // Desktop mode - no controls needed
-            this.isMobileDevice = false;
-            mobileControls.style.display = 'none';
-            
-            // Force layout update for desktop
-            this.handleDesktopLayout();
-        }
+    // Use feature detection to reliably check for touch support
+    isTouchSupported: function() {
+        return (
+            ('ontouchstart' in window) || 
+            (navigator.maxTouchPoints > 0) || 
+            (navigator.msMaxTouchPoints > 0)
+        );
     },
     
-    // Handle screen orientation changes
-    handleOrientation: function() {
-        if (!this.isMobileDevice) return;
-        
+    // Handle window resize events
+    handleResize: function() {
+        // Skip if mobile controls aren't active
+        if (!this.isMobileControlsActive) {
+            this.setDesktopLayout();
+            return;
+        }
+
+        // Determine orientation based on window dimensions
         const isLandscape = window.innerWidth > window.innerHeight;
+        
+        // Apply appropriate layout
+        this.updateMobileLayout(isLandscape);
+        
+        // Force a canvas resize to update game rendering
+        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
+            Renderer.resizeCanvas();
+        }
+    },
+    
+    // Update mobile layout based on orientation
+    updateMobileLayout: function(isLandscape) {
         const mobileControls = document.getElementById('mobile-controls');
-        const buttonArea = document.querySelector('.button-area');
+        const buttons = document.querySelectorAll('.control-button');
         
-        // Adjust control sizes based on orientation
-        if (isLandscape) {
-            // Landscape mode - smaller controls
-            if (mobileControls) mobileControls.style.height = '80px';
-            if (buttonArea) buttonArea.style.height = '80px';
-            
-            // Make control buttons smaller in landscape
-            document.querySelectorAll('.control-button').forEach(button => {
-                button.style.width = '50px';
-                button.style.height = '50px';
-            });
-        } else {
-            // Portrait mode - standard controls
-            if (mobileControls) mobileControls.style.height = '90px';
-            if (buttonArea) buttonArea.style.height = '100px';
-            
-            // Reset control buttons to normal size in portrait
-            document.querySelectorAll('.control-button').forEach(button => {
-                button.style.width = '60px';
-                button.style.height = '60px';
-            });
+        // Set controls height based on orientation
+        const controlsHeight = isLandscape ? 
+            this.layoutConfig.controlsHeight.landscape : 
+            this.layoutConfig.controlsHeight.portrait;
+        
+        // Set button size based on orientation
+        const buttonSize = isLandscape ? 
+            this.layoutConfig.buttonSize.landscape : 
+            this.layoutConfig.buttonSize.portrait;
+        
+        // Apply controls height
+        if (mobileControls) {
+            mobileControls.style.height = `${controlsHeight}px`;
         }
         
-        // Force canvas resize after layout changes
-        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
-            Renderer.resizeCanvas();
-        }
-    },
-    
-    // Handle desktop layout
-    handleDesktopLayout: function() {
-        const buttonArea = document.querySelector('.button-area');
+        // Apply button sizes
+        buttons.forEach(button => {
+            button.style.width = `${buttonSize}px`;
+            button.style.height = `${buttonSize}px`;
+        });
+        
+        // Adjust the game area height to account for controls
         const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.style.height = `calc(100vh - ${controlsHeight}px)`;
+        }
         
-        // Remove button area height on desktop
-        if (buttonArea) buttonArea.style.height = '0';
-        
-        // Give game area full height on desktop
-        if (gameArea) gameArea.style.height = '100vh';
-        
-        // Force canvas resize for desktop layout
-        if (typeof Renderer !== 'undefined' && Renderer.resizeCanvas) {
-            Renderer.resizeCanvas();
+        // Update the button area height to match
+        const buttonArea = document.querySelector('.button-area');
+        if (buttonArea) {
+            buttonArea.style.height = `${controlsHeight}px`;
         }
     },
     
-    // Prevent default behaviors that can interfere with gameplay
+    // Set desktop layout (no mobile controls)
+    setDesktopLayout: function() {
+        // Hide mobile controls
+        const mobileControls = document.getElementById('mobile-controls');
+        if (mobileControls) {
+            mobileControls.style.display = 'none';
+        }
+        
+        // Give game area full height
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.style.height = '100vh';
+        }
+        
+        // Remove button area height
+        const buttonArea = document.querySelector('.button-area');
+        if (buttonArea) {
+            buttonArea.style.height = '0';
+        }
+    },
+    
+    // Prevent default browser behaviors
     preventDefaultBehaviors: function() {
-        // Prevent page scrolling when touching game elements
+        // Prevent scrolling when touching game elements
         document.addEventListener('touchmove', (e) => {
             if (e.target.closest('#game-container, #mobile-controls')) {
                 e.preventDefault();
@@ -272,5 +283,17 @@ const Input = {
             
             this.lastTap = now;
         }, { passive: false });
+        
+        // Prevent pinch zoom on game container
+        document.getElementById('game-container').addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    },
+    
+    // Clean up event handlers (called when game is destroyed)
+    cleanup: function() {
+        // Any specific cleanup needed
     }
 };
