@@ -176,11 +176,24 @@ const Input = {
     
     // Use feature detection to reliably check for touch support
     isTouchSupported: function() {
-        return (
+        // First check for touch capability
+        const hasTouchSupport = (
             ('ontouchstart' in window) || 
             (navigator.maxTouchPoints > 0) || 
             (navigator.msMaxTouchPoints > 0)
         );
+        
+        // If no touch support, definitely not a mobile device
+        if (!hasTouchSupport) return false;
+        
+        // Additional check for actual mobile device using screen size and user agent
+        // This helps filter out desktop browsers with touch support
+        const isMobileScreenSize = window.innerWidth <= 1024;
+        
+        // Only enable mobile controls on devices that:
+        // 1. Have touch support AND
+        // 2. Have a mobile-sized screen
+        return hasTouchSupport && isMobileScreenSize;
     },
     
     // Handle window resize events
